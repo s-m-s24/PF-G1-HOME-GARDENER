@@ -1,11 +1,13 @@
+#define PIN_HUMEDAD 15
+
 void setup() {
 	Serial.begin(9600);
-	pinMode(15, INPUT);
+	pinMode(PIN_HUMEDAD, INPUT);
 }
 
 void loop() {
-  int lectura = analogRead(15);
-	Serial.println(lectura); //lectura analógica
+  int lecturaHumedad = analogRead(PIN_HUMEDAD);
+	Serial.println(lecturaHumedad); //lectura analógica
 	//Serial.println(digitalRead(10)); //lectura digital
 	delay(100);
 }

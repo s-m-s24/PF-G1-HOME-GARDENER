@@ -1,11 +1,11 @@
-#define BUTTON_UP 5
-#define BUTTON_DOWN 4
-#define BUTTON_OK 16
-#define BUTTON_WATER 17
+#define BUTTON_UP 25
+#define BUTTON_DOWN 26
+#define BUTTON_OK 27
+#define BUTTON_WATER 33
 
-#define LED_WATER 18
-#define LED_LOADING 19
-#define LED_ON 21
+#define LED_WATER 2
+#define LED_LOADING 4
+#define LED_ON 5
 
 #define PUSHED LOW
 #define N_PUSHED HIGH

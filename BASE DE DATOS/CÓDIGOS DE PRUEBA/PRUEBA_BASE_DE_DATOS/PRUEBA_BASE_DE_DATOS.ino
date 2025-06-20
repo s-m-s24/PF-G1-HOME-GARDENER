@@ -3,8 +3,8 @@
 #include <WiFi.h>
 
 // Add you Wi-Fi credentials
-const char* ssid = "MECA-IoT";
-const char* password = "IoT$2025";
+const char* ssid = "*Fibertel WiFi874 2.4GHz";
+const char* password = "seg21NEWa1";
 
 // Supabase credentials
 const char* supabaseUrl = "https://jqjlakkgpogdskdxiymf.supabase.co";
@@ -29,15 +29,17 @@ void setup() {
  // Add the table name here
  String tableName = "TipoGrupo";
  // change the correct columns names you create in your table
- String jsonData = "{\"ID\": \"7\", \"Nombre\": \"Tomate\"}";
+ String payload = "{\"ID\": 5, \"Nombre\": \"Remolacha\", \"Info\": \"Regado\"}";
 
  // sending data to supabase
- int response = supabase.insert(tableName, jsonData, false);
+ int response = supabase.insert(tableName, payload, false);
  if (response == 200) {
    Serial.println("Data inserted successfully!");
  } else {
    Serial.print("Failed to insert data. HTTP response: ");
    Serial.println(response);
+   Serial.print ("Payload: ");
+   Serial.println(payload);
  }
 }
 

@@ -27,9 +27,9 @@ void setup() {
  supabase.begin(supabaseUrl, supabaseKey);
 
  // Add the table name here
- String tableName = "TipoGrupo";
+ String tableName = "Estadisticas";
  // change the correct columns names you create in your table
- String payload = "{\"ID\": 5, \"Nombre\": \"Remolacha\", \"Info\": \"Regado\"}";
+ String payload = "{\"IdPlanta\": 5, \"Fecha\": 10.14, \"HumedadActual\": 14.3}";
 
  // sending data to supabase
  int response = supabase.insert(tableName, payload, false);

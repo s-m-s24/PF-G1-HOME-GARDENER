@@ -1,12 +1,12 @@
-#define BUTTON_UP 5
-#define BUTTON_DOWN 4
-#define BUTTON_OK 16
-#define BUTTON_WATER 17
-
+#define BUTTON_UP 25
+#define BUTTON_DOWN 26
+#define BUTTON_OK 8
+#define BUTTON_WATER 33
+/*
 #define LED_WATER 18
 #define LED_LOADING 19
 #define LED_ON 21
-
+*/
 #define PUSHED LOW
 #define N_PUSHED HIGH
 
@@ -22,13 +22,15 @@ void setup() {
   pinMode(BUTTON_DOWN,INPUT_PULLUP);
   pinMode(BUTTON_OK,INPUT_PULLUP);
   pinMode(BUTTON_WATER,INPUT_PULLUP);
-
+/*
   pinMode(LED_WATER,OUTPUT);
   pinMode(LED_ON,OUTPUT);
   pinMode(LED_LOADING,OUTPUT);
+*/
 }
 
 void loop() {
+  /*
   ReadButtonUp = digitalRead(BUTTON_UP);
   Serial.print("UP: ");
   if (ReadButtonUp == PUSHED) {
@@ -44,23 +46,25 @@ void loop() {
   } else {
     Serial.print("NOT PUSHED");
   }
-
+*/
   ReadButtonOk = digitalRead(BUTTON_OK);
+  Serial.print(ReadButtonOk);
   Serial.print(" | OK: ");
   if (ReadButtonOk == PUSHED) {
     Serial.print("PUSHED");
   } else {
-    Serial.print("NOT PUSHED");
+    Serial.println("NOT PUSHED");
   }
 
+/*
   ReadButtonWater = digitalRead(BUTTON_WATER);
   Serial.print(" | WATER: ");
   if (ReadButtonWater == PUSHED) {
     Serial.println("PUSHED");
   } else {
     Serial.println("NOT PUSHED");
-  }
-  
+  }*/
+  /*
   delay(500);
   digitalWrite(LED_LOADING,HIGH);
   digitalWrite(LED_WATER,HIGH);
@@ -69,4 +73,5 @@ void loop() {
   digitalWrite(LED_LOADING,LOW);
   digitalWrite(LED_WATER,LOW);
   digitalWrite(LED_ON,LOW);
+  */
 }

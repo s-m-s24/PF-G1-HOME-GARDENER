@@ -2,6 +2,25 @@
 #include <TimerOne.h>
 #include <LiquidCrystal_I2C.h>  //21: SDA || 22: SLC
 
+struct Plant {
+  String plantName;
+  int temp;
+  int humid;
+
+};
+
+List<Plant> plants;
+
+Plant tomate = {"Tomate", 1, 2};
+Plant pepino = {"Pepino", 2, 3};
+Plant rucula = {"Rucula", 3, 4};
+Plant choclo = {"Choclo", 4, 5};
+
+plants.add(tomate);
+plants.add(pepino);
+plants.add(rucula);
+plants.add(choclo);
+
 #define BUTTON_UP 26
 #define BUTTON_DOWN 25
 #define BUTTON_OK 27
@@ -26,10 +45,6 @@ bool ReadButtonDown = N_PUSHED;
 bool ReadButtonOk = N_PUSHED;
 bool ReadButtonWater = N_PUSHED;
 
-List<String> plants;
-List<int> temperature;
-List<int> humid;
-
 bool selected = 0;
 int printIndex = 0;
 int chosenPlant = 0;
@@ -46,19 +61,6 @@ LiquidCrystal_I2C lcd(0x27, 16, 2);
 
 void setup() {
   Serial.begin(115200);
-
-  plants.add("Tomate");
-  temperature.add(21);
-  humid.add(1);
-  plants.add("Pepino");
-  temperature.add(22);
-  humid.add(2);
-  plants.add("Remolacha");
-  temperature.add(23);
-  humid.add(3);
-  plants.add("Rucula");
-  temperature.add(24);
-  humid.add(4);
 
   Timer1.initialize(1000);            //Cada cuantos milisegundos queremos que interrumpa el timer, en este caso: 1000
   Timer1.attachInterrupt(ISR_Timer);  //A dónde queremos ir en la interrupción, en este caso: ISR_Timer (la función más abajo);
@@ -83,9 +85,9 @@ void setup() {
   lcd.setCursor(0, 1);
   lcd.print("");
   lcd.setCursor(1, 0);
-  lcd.print(plants.get(printIndex));
+  lcd.print(plants.get(printIndex.name));
   lcd.setCursor(1, 1);
-  lcd.print(plants.get(printIndex + 1));
+  lcd.print(plants.get((printIndex + 1).name));
 }
 
 void loop() {

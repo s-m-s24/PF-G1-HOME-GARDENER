@@ -1,18 +1,41 @@
 #include <List.hpp>
-#include <LiquidCrystal_I2C.h>
+#include <LiquidCrystal_I2C.h> //21: SDA || 22: SLC
 
 struct Plant {
+  int PlantID;
   String plantName;
-  int temp;
-  int humid;
+  String tempStatus;
+  String humStatus;
+};
+
+struct IdealValues {
+  int tempIdeal;
+  int humIdeal;
+};
+
+struct PlantReads {
+  int tempRead;
+  int humRead;
+  int lastRead;
+  int lastWater;
 };
 
 List<Plant> plants(true);
 
-Plant tomate = { "Tomate", 12, 2 };
-Plant pepino = { "Pepino", 23, 3 };
-Plant rucula = { "Rucula", 34, 4 };
-Plant choclo = { "Choclo", 45, 5 };
+Plant tomate = { 1, "Tomate", "", "" };
+Plant pepino = { 2, "Pepino", "", "" };
+Plant rucula = { 3, "Rucula", "", "" };
+Plant choclo = { 4, "Choclo", "", "" };
+
+IdealValues tomateValues = { 15, 1000 };
+IdealValues pepinoValues = { 20, 1500 };
+IdealValues ruculaValues = { 5, 800 };
+IdealValues chocloValues = { 25, 2000 };
+
+PlantReads tomateReads = { 20, 1100, 0, 0 };
+PlantReads pepinoReads = { 10, 1000, 0, 0 };
+PlantReads ruculaReads = { 20, 200, 0, 0 };
+PlantReads chocloReads = { 80, 1800, 0, 0 };
 
 // Pines
 #define BUTTON_UP 26
@@ -27,17 +50,32 @@ Plant choclo = { "Choclo", 45, 5 };
 #define PUSHED LOW
 #define N_PUSHED HIGH
 
+#define TEMP_IDEAL 20
+#define TEMP_OK_RANGE 5
+#define TEMP_EXCEED_RANGE 10
+#define MIN_TEMP -20
+#define MAX_TEMP 40
+
+#define HUM_IDEAL 2050
+#define HUM_OK_RANGE 300
+#define HUM_EXCEED_RANGE 800
+#define MIN_HUM 500
+#define MAX_HUM 3800
+
 // Estados
 #define HOME 1
 #define DOWN 2
 #define UP 3
 #define PRINT 4
+#define PROCESS_LECTURES 5
+#define BACK_HOME 6
 
 #define MAX_OPTIONS 1
 #define MIN_OPTIONS 0
 
-int actualState = HOME;
+int actualState = PROCESS_LECTURES;
 int returnState = HOME;
+int printDetail;
 
 bool ReadButtonUp = N_PUSHED;
 bool ReadButtonDown = N_PUSHED;
@@ -58,9 +96,10 @@ void ScrollDown(void);
 void ScrollUp(void);
 void printPlantsNames(void);
 void printPlantsDetails(int);
+String filterReads(int, int, int, int, int, int);
 
 void setup() {
-  Serial.begin(115200);
+  Serial.begin(9600);
 
   plants.add(tomate);
   plants.add(pepino);
@@ -94,23 +133,35 @@ void loop() {
   switch (actualState) {
     case HOME:
       if (ReadButtonDown == PUSHED) {
-        actualState = DOWN;
+        Serial.println("pre down");
+        while (ReadButtonDown == PUSHED) {
+          Serial.println("wait");
+          ReadButtonDown = digitalRead(BUTTON_DOWN);
+        }
+        ScrollDown();
         Serial.println("down");
       }
 
       if (ReadButtonUp == PUSHED) {
-        actualState = UP;
+        Serial.println("pre up");
+        while (ReadButtonUp == PUSHED) {
+          Serial.println("wait");
+          ReadButtonUp = digitalRead(BUTTON_UP);
+        }
+        ScrollUp();
         Serial.println("up");
       }
 
       if (ReadButtonOk == PUSHED) {
+        while (ReadButtonOk == PUSHED) {
+          Serial.println("wait");
+          ReadButtonOk = digitalRead(BUTTON_OK);
+        }
         actualState = PRINT;
         chosenPlant = printIndex + selected;
-        Serial.print("ok: ");
-        Serial.println(chosenPlant);
         printPlantsDetails(chosenPlant);
-        selected = MIN_OPTIONS;
-        returnState = PRINT;
+        selected = 0;
+        printDetail = MIN_OPTIONS;
       } 
       else if (now - lastPrint >= T_PRINT) {
         printPlantsNames();
@@ -133,20 +184,87 @@ void loop() {
       break;
 
     case PRINT:
+    Serial.println(selected);
       if (now - lastPrint >= T_PRINT) {
         printPlantsDetails(chosenPlant);
         lastPrint = millis();
       }
 
       if (ReadButtonDown == PUSHED) {
-        actualState = DOWN;
+        Serial.println("pre down");
+        while (ReadButtonDown == PUSHED) {
+          Serial.println("wait");
+          ReadButtonDown = digitalRead(BUTTON_DOWN);
+        }
+        if (selected != MAX_OPTIONS)
+        {
+          selected = selected + 1;
+        }
+        else
+        {
+          selected = 0;
+          if (printDetail == MAX_OPTIONS)
+          {
+            printDetail = MIN_OPTIONS;
+          }
+          else{
+            printDetail = MAX_OPTIONS;
+          }
+        }
+        Serial.println("down");
       }
 
       if (ReadButtonUp == PUSHED) {
-        actualState = UP;
+        Serial.println("pre up");
+        while (ReadButtonUp == PUSHED) {
+          Serial.println("wait");
+          ReadButtonUp = digitalRead(BUTTON_UP);
+        }
+        if (selected != MIN_OPTIONS)
+        {
+          selected = selected - 1;
+        }
+        else
+        {
+          selected = 1;
+          if (printDetail == MAX_OPTIONS)
+          {
+            printDetail = MIN_OPTIONS;
+          }
+          else{
+            printDetail = MAX_OPTIONS;
+          }
+        }
+        Serial.println("down");
       }
+      /*
+      if (ReadButtonWater == PUSHED) {
+        actualState = BACK_HOME;
+      }
+      */
 
       break;
+
+    case PROCESS_LECTURES:
+      tomate.tempStatus = filterReads(tomateReads.tempRead, MIN_TEMP, MAX_TEMP, tomateValues.tempIdeal, TEMP_OK_RANGE, TEMP_EXCEED_RANGE);
+      tomate.humStatus = filterReads(tomateReads.humRead, MIN_HUM, MAX_HUM, tomateValues.humIdeal, HUM_OK_RANGE, HUM_EXCEED_RANGE);
+
+      pepino.tempStatus = filterReads(pepinoReads.tempRead, MIN_TEMP, MAX_TEMP, pepinoValues.tempIdeal, TEMP_OK_RANGE, TEMP_EXCEED_RANGE);
+      pepino.humStatus = filterReads(pepinoReads.humRead, MIN_HUM, MAX_HUM, pepinoValues.humIdeal, HUM_OK_RANGE, HUM_EXCEED_RANGE);
+
+      rucula.tempStatus = filterReads(ruculaReads.tempRead, MIN_TEMP, MAX_TEMP, ruculaValues.tempIdeal, TEMP_OK_RANGE, TEMP_EXCEED_RANGE);
+      rucula.humStatus = filterReads(ruculaReads.humRead, MIN_HUM, MAX_HUM, ruculaValues.humIdeal, HUM_OK_RANGE, HUM_EXCEED_RANGE);
+
+      choclo.tempStatus = filterReads(chocloReads.tempRead, MIN_TEMP, MAX_TEMP, chocloValues.tempIdeal, TEMP_OK_RANGE, TEMP_EXCEED_RANGE);
+      choclo.humStatus = filterReads(chocloReads.humRead, MIN_HUM, MAX_HUM, chocloValues.humIdeal, HUM_OK_RANGE, HUM_EXCEED_RANGE);
+      actualState = HOME;
+      break;
+
+    case BACK_HOME:
+    if ((ReadButtonWater == N_PUSHED) && (ReadButtonOk == N_PUSHED) && (ReadButtonDown == N_PUSHED) && (ReadButtonUp == N_PUSHED)) {
+        actualState = HOME;
+      }
+    break;
   }
 }
 
@@ -177,6 +295,7 @@ void ScrollUp() {
 }
 
 void printPlantsNames(void) {
+  // Ubicamos el cursor en la primera posición(columna:0) de la segunda línea(fila:1)
   lcd.clear();
   lcd.setCursor(0, selected);
   lcd.print("*");
@@ -187,24 +306,54 @@ void printPlantsNames(void) {
 }
 
 void printPlantsDetails(int chosenPlant) {
-  bool orderPrint = !selected;
   lcd.clear();
   lcd.setCursor(0, selected);
   lcd.print("*");
-  if (selected == MIN_OPTIONS){
+  if (printDetail == MIN_OPTIONS) {
     lcd.setCursor(1, 0);
-  lcd.print("Planta:");
-  lcd.setCursor(8, 0);
-  lcd.print(plants.get(chosenPlant).plantName);
-  }  
-  lcd.setCursor(1, orderPrint);
-  lcd.print("Temperatura:");
-  lcd.setCursor(13, orderPrint);
-  lcd.print(plants.get(chosenPlant).temp);
-  if (selected == MAX_OPTIONS){
-   lcd.setCursor(1, 1);
-  lcd.print("Humedad:");
-  lcd.setCursor(9, 1);
-  lcd.print(plants.get(chosenPlant).humid); 
+    lcd.print("Planta:");
+    lcd.setCursor(8, 0);
+    lcd.print(plants.get(chosenPlant).plantName);
+    lcd.setCursor(1, 1);
+    lcd.print("T:");
+    lcd.setCursor(3, 1);
+    lcd.print(plants.get(chosenPlant).tempStatus);
   }
+  if (printDetail == MAX_OPTIONS) {
+    lcd.setCursor(1, 0);
+  lcd.print("T:");
+  lcd.setCursor(3, 0);
+  lcd.print(plants.get(chosenPlant).tempStatus);
+    lcd.setCursor(1, 1);
+    lcd.print("Humedad:");
+    lcd.setCursor(9, 1);
+    lcd.print(plants.get(chosenPlant).humStatus);
+  }
+}
+
+
+String filterReads(int lecture, int MIN, int MAX, int IDEAL, int OK_RANGE, int EXCEED_RANGE) {
+  /*
+  requires: lecture, minimum, maximum, ideal value, permited range, exceeding range
+  */
+  String status = "";
+  if ((lecture <= MIN) || (lecture >= MAX)) {
+    status = "PROBLEMA!";
+
+  } else {
+    if ((lecture <= IDEAL + OK_RANGE) && (lecture >= IDEAL - OK_RANGE)) {
+      status = "IDEAL";
+    } else if ((lecture <= IDEAL + EXCEED_RANGE) && (lecture >= IDEAL + OK_RANGE)) {
+      status = "ALTO";
+    } else if ((lecture >= IDEAL - EXCEED_RANGE) && (lecture <= IDEAL - OK_RANGE)) {
+      status = "BAJ0";
+    } else if (lecture <= IDEAL - EXCEED_RANGE) {
+      status = "MUY BAJ0";
+    } else if (lecture >= IDEAL + EXCEED_RANGE) {
+      status = "MUY ALT0";
+    }
+  }
+  //Serial.print(" | ");
+  //Serial.println(status);
+  return status;
 }

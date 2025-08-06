@@ -1,4 +1,4 @@
-#define PIN_HUMEDAD 15
+#define PIN_HUMEDAD 5
 
 void setup() {
 	Serial.begin(9600);

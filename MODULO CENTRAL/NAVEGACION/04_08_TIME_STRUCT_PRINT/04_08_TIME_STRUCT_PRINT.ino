@@ -20,13 +20,14 @@ struct PlantReads {
   int tempRead;
   int humRead;
   int lastRead;
-
   int lastWater;
 };
 
-List<Plant> plants(true);
-List<String> plantPrint(true);
-List<String> plantInfo(true);
+List<Plant> plants(true);             // HECHA: Lista de objetos de planta con la info ya lista para el usuario
+List<IdealValues> idealValues(true);  // HECHA: Lista de valores ideales según tipo de planta
+List<PlantReads> plantReads(true);    // HECHA: Lista de lecturas según planta: valores no procesados
+List<String> plantPrint(true);        // HECHA: Lista de parámetros a imprimir en la pantalla
+List<String> plantInfo(true);         // HECHA: Lista de info de la planta elegida a imprimir en la pantalla
 
 Plant tomate = { 1, "Tomate", "", "", "1100", "202", "3" };
 Plant pepino = { 2, "Pepino", "", "", "2000", "18", "1" };
@@ -80,17 +81,12 @@ bool mustWater = false;
 
 #define MAX_OPTIONS 1
 #define MIN_OPTIONS 0
+#define GO_UP -1
+#define GO_DOWN 1
 
 int actualState = PROCESS_LECTURES;
 int returnState = HOME;
 int printDetail;
-
-#define PRINT_NAME_TEMP 0
-#define PRINT_TEMP_HUM 1
-#define PRINT_HUM_READS 2
-#define PRINT_READS_WATER 3
-#define PRINT_WATER_WATERED 4
-
 
 bool ReadButtonUp = N_PUSHED;
 bool ReadButtonDown = N_PUSHED;
@@ -103,14 +99,17 @@ unsigned long lastPrint = 0;
 #define T_PRINT 1000
 unsigned long now = 0;
 
+#define SCREEN_MODEL 0x27
+#define SCREEN_LENGHT 16
+#define SCREEN_HEIGHT 2
 
-LiquidCrystal_I2C lcd(0x27, 16, 2);
+LiquidCrystal_I2C lcd(SCREEN_MODEL, SCREEN_LENGHT, SCREEN_HEIGHT);
 
 // Declaración de funciones
-void ScrollDown(void);
-void ScrollUp(void);
+int ScrollDown(int, int);
+int ScrollUp(int, int);
 void printPlantsNames(void);
-void printPlantsDetails(int);
+void printPlantsDetails(void);
 String filterReads(int, int, int, int, int, int);
 
 void setup() {
@@ -127,6 +126,16 @@ void setup() {
   plantPrint.add("Leído");
   plantPrint.add("Regado");
   plantPrint.add("T riego");
+
+  idealValues.add(tomateValues);
+  idealValues.add(pepinoValues);
+  idealValues.add(ruculaValues);
+  idealValues.add(chocloValues);
+
+  plantReads.add(tomateReads);
+  plantReads.add(pepinoReads);
+  plantReads.add(ruculaReads);
+  plantReads.add(chocloReads);
 
   pinMode(BUTTON_UP, INPUT_PULLUP);
   pinMode(BUTTON_DOWN, INPUT_PULLUP);
@@ -150,17 +159,16 @@ void loop() {
 
   now = millis();
 
-  static int chosenPlant;
-
   switch (actualState) {
     case HOME:
+    int chosenPlant;
       if (ReadButtonDown == PUSHED) {
         Serial.println("pre down");
         while (ReadButtonDown == PUSHED) {
           Serial.println("wait");
           ReadButtonDown = digitalRead(BUTTON_DOWN);
         }
-        ScrollDown();
+        printIndex = ScrollDown(plants.getSize(), printIndex);
         Serial.println("down");
       }
 
@@ -170,7 +178,7 @@ void loop() {
           Serial.println("wait");
           ReadButtonUp = digitalRead(BUTTON_UP);
         }
-        ScrollUp();
+        printIndex = ScrollUp(plants.getSize(), printIndex);
         Serial.println("up");
       }
 
@@ -187,8 +195,8 @@ void loop() {
         plantInfo.add(plants.get(chosenPlant).lastRead);
         plantInfo.add(plants.get(chosenPlant).lastWater);
         plantInfo.add(plants.get(chosenPlant).timeWatered);
-        printPlantsDetails(chosenPlant);
-        selected = 0;
+        printPlantsDetails();
+        selected = MIN_OPTIONS;
         printDetail = MIN_OPTIONS;
       } else if (now - lastPrint >= T_PRINT) {
         printPlantsNames();
@@ -196,24 +204,10 @@ void loop() {
       }
       break;
 
-    case DOWN:
-      if (ReadButtonDown == N_PUSHED) {
-        ScrollDown();
-        actualState = returnState;
-      }
-      break;
-
-    case UP:
-      if (ReadButtonUp == N_PUSHED) {
-        ScrollUp();
-        actualState = returnState;
-      }
-      break;
-
     case PRINT:
       Serial.println(selected);
       if (now - lastPrint >= T_PRINT) {
-        printPlantsDetails(chosenPlant);
+        printPlantsDetails();
         lastPrint = millis();
       }
 
@@ -223,16 +217,7 @@ void loop() {
           Serial.println("wait");
           ReadButtonDown = digitalRead(BUTTON_DOWN);
         }
-        if (selected != MAX_OPTIONS) {
-          selected = selected + 1;
-        } else {
-          selected = 0;
-          if (printDetail == PRINT_WATER_WATERED) {
-            printDetail = PRINT_NAME_TEMP;
-          } else {
-            printDetail = printDetail + 1;
-          }
-        }
+        printDetail = ScrollDown(plantPrint.getSize(), printDetail);
         Serial.println("down");
       }
 
@@ -242,41 +227,17 @@ void loop() {
           Serial.println("wait");
           ReadButtonUp = digitalRead(BUTTON_UP);
         }
-        if (selected != MIN_OPTIONS) {
-          selected = selected - 1;
-        } else {
-          selected = 1;
-          if (printDetail == PRINT_NAME_TEMP) {
-            printDetail = PRINT_WATER_WATERED;
-
-          } else {
-            printDetail = printDetail - 1;
-          }
-        }
+        printDetail = ScrollUp(plantPrint.getSize(), printDetail);
         Serial.println("UP");
       }
-      /*
-      if (ReadButtonWater == PUSHED) {
-        actualState = BACK_HOME;
-      }
-      */
-
       break;
 
-    case PROCESS_LECTURES:
+    case PROCESS_LECTURES:  // Hacer función?
+      for (int process = 0; process <= plants.getSize(); process++) {
 
-      // sistematizar
-      tomate.tempStatus = filterReads(tomateReads.tempRead, MIN_TEMP, MAX_TEMP, tomateValues.tempIdeal, TEMP_OK_RANGE, TEMP_EXCEED_RANGE);
-      tomate.humStatus = filterReads(tomateReads.humRead, MIN_HUM, MAX_HUM, tomateValues.humIdeal, HUM_OK_RANGE, HUM_EXCEED_RANGE);
-
-      pepino.tempStatus = filterReads(pepinoReads.tempRead, MIN_TEMP, MAX_TEMP, pepinoValues.tempIdeal, TEMP_OK_RANGE, TEMP_EXCEED_RANGE);
-      pepino.humStatus = filterReads(pepinoReads.humRead, MIN_HUM, MAX_HUM, pepinoValues.humIdeal, HUM_OK_RANGE, HUM_EXCEED_RANGE);
-
-      rucula.tempStatus = filterReads(ruculaReads.tempRead, MIN_TEMP, MAX_TEMP, ruculaValues.tempIdeal, TEMP_OK_RANGE, TEMP_EXCEED_RANGE);
-      rucula.humStatus = filterReads(ruculaReads.humRead, MIN_HUM, MAX_HUM, ruculaValues.humIdeal, HUM_OK_RANGE, HUM_EXCEED_RANGE);
-
-      choclo.tempStatus = filterReads(chocloReads.tempRead, MIN_TEMP, MAX_TEMP, chocloValues.tempIdeal, TEMP_OK_RANGE, TEMP_EXCEED_RANGE);
-      choclo.humStatus = filterReads(chocloReads.humRead, MIN_HUM, MAX_HUM, chocloValues.humIdeal, HUM_OK_RANGE, HUM_EXCEED_RANGE);
+        plants.get(process).tempStatus = filterReads(plantReads.get(process).tempRead, MIN_TEMP, MAX_TEMP, idealValues.get(process).tempIdeal, TEMP_OK_RANGE, TEMP_EXCEED_RANGE);
+        plants.get(process).humStatus = filterReads(plantReads.get(process).humRead, MIN_HUM, MAX_HUM, idealValues.get(process).humIdeal, HUM_OK_RANGE, HUM_EXCEED_RANGE);
+      }
       actualState = HOME;
       break;
 
@@ -288,28 +249,29 @@ void loop() {
   }
 }
 
-void ScrollDown() {
+int ScrollDown(int maxSize, int index) {
   if (selected == MAX_OPTIONS) {
-    selected = 0;
-    if (plants.getSize() == (printIndex + 2)) {
-      printIndex = 0;
+    selected = MIN_OPTIONS;
+    if (maxSize == (index + MAX_OPTIONS + 1)) {
+      index = 0;
     } else {
-      printIndex += 1;
+      index += GO_DOWN;
     }
   } else {
-    selected += 1;
+    selected += GO_DOWN;
   }
+  return index;
 }
 
-void ScrollUp() {
+int ScrollUp(int maxSize, int index) {
   if (selected != MIN_OPTIONS) {
-    selected -= 1;
+    selected += GO_UP;
   } else {
-    selected = 1;
-    if (printIndex == 0) {
-      printIndex = plants.getSize() - 2;
+    selected = MAX_OPTIONS;
+    if (index == 0) {
+      index = maxSize - MAX_OPTIONS - 1;
     } else {
-      printIndex -= 1;
+      index += GO_UP;
     }
   }
 }
@@ -325,29 +287,15 @@ void printPlantsNames(void) {
   }
 }
 
-void printPlantsDetails(int chosenPlant) {
+void printPlantsDetails() {
   lcd.clear();
   lcd.setCursor(0, selected);
   lcd.print("*");
-  if (printDetail == MIN_OPTIONS) {
-    lcd.setCursor(1, 0);
-    lcd.print("Planta:");
-    lcd.setCursor(8, 0);
-    lcd.print(plants.get(chosenPlant).plantName);
-    lcd.setCursor(1, 1);
-    lcd.print("T:");
-    lcd.setCursor(3, 1);
-    lcd.print(plants.get(chosenPlant).tempStatus);
-  }
-  if (printDetail == MAX_OPTIONS) {
-    lcd.setCursor(1, 0);
-    lcd.print("T:");
-    lcd.setCursor(3, 0);
-    lcd.print(plants.get(chosenPlant).tempStatus);
-    lcd.setCursor(1, 1);
-    lcd.print("Humedad:");
-    lcd.setCursor(9, 1);
-    lcd.print(plants.get(chosenPlant).humStatus);
+  for (int infoShown = 0; infoShown <= MAX_OPTIONS; infoShown++) {
+    lcd.setCursor(1, infoShown);
+    lcd.print(plantPrint.get(printIndex + infoShown));
+    lcd.setCursor(9, infoShown);
+    lcd.print(plantInfo.get(printIndex + infoShown));
   }
 }
 
@@ -380,7 +328,5 @@ String filterReads(int lecture, int MIN, int MAX, int IDEAL, int OK_RANGE, int E
       mustWater = false;
     }
   }
-  //Serial.print(" | ");
-  //Serial.println(status);
   return status;
 }

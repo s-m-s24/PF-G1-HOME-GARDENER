@@ -46,6 +46,9 @@ PlantReads pepinoReads = { 10, 1000, 0, 0 };
 PlantReads ruculaReads = { 20, 200, 0, 0 };
 PlantReads chocloReads = { 80, 1800, 0, 0 };
 
+int readsMade = 0;
+#define MIN_READS 10
+
 // Pines
 #define BUTTON_UP 26
 #define BUTTON_DOWN 27
@@ -160,28 +163,33 @@ void loop() {
   ReadButtonWater = digitalRead(BUTTON_WATER);
 
   now = millis();
+  //Serial.println(actualState);
 
   switch (actualState) {
     case HOME:
-    int chosenPlant;
+      int chosenPlant;
       if (ReadButtonDown == PUSHED) {
         Serial.println("pre down");
-        while (ReadButtonDown == PUSHED) {
+        while ((ReadButtonDown == PUSHED) || (readsMade < MIN_READS)) {
           Serial.println("wait");
           ReadButtonDown = digitalRead(BUTTON_DOWN);
+          readsMade = readsMade + 1;
         }
         printIndex = ScrollDown(plants.getSize(), printIndex);
         Serial.println("down");
+        readsMade = 0;
       }
 
       if (ReadButtonUp == PUSHED) {
         Serial.println("pre up");
-        while (ReadButtonUp == PUSHED) {
+        while ((ReadButtonUp == PUSHED) || (readsMade < MIN_READS)) {
           Serial.println("wait");
           ReadButtonUp = digitalRead(BUTTON_UP);
+          readsMade = readsMade + 1;
         }
         printIndex = ScrollUp(plants.getSize(), printIndex);
         Serial.println("up");
+        readsMade = 0;
       }
 
       if (ReadButtonOk == PUSHED) {
@@ -236,9 +244,9 @@ void loop() {
 
     case PROCESS_LECTURES:  // Hacer función?
       for (int process = 0; process <= plants.getSize(); process++) {
-
-        plants.get(process).tempStatus = filterReads(plantReads.get(process).tempRead, MIN_TEMP, MAX_TEMP, idealValues.get(process).tempIdeal, TEMP_OK_RANGE, TEMP_EXCEED_RANGE);
-        plants.get(process).humStatus = filterReads(plantReads.get(process).humRead, MIN_HUM, MAX_HUM, idealValues.get(process).humIdeal, HUM_OK_RANGE, HUM_EXCEED_RANGE);
+        Serial.println(process);
+        //plants.get(process).tempStatus = filterReads(plantReads.get(process).tempRead, MIN_TEMP, MAX_TEMP, idealValues.get(process).tempIdeal, TEMP_OK_RANGE, TEMP_EXCEED_RANGE);
+        //plants.get(process).humStatus = filterReads(plantReads.get(process).humRead, MIN_HUM, MAX_HUM, idealValues.get(process).humIdeal, HUM_OK_RANGE, HUM_EXCEED_RANGE);
       }
       actualState = HOME;
       break;
@@ -249,6 +257,23 @@ void loop() {
       }
       break;
   }
+}
+//CONVERTIR EN DOWNNN
+int ScrollUp(int maxSize, int index) {
+  if (selected != MIN_OPTIONS) {
+    selected = MIN_OPTIONS;
+    Serial.println("sel");
+  } else {
+    selected = MAX_OPTIONS;
+    if (index == 0) {
+      index = maxSize - MAX_OPTIONS - 1;
+      Serial.println("max");
+    } else {
+      index += GO_UP;
+      Serial.println("up");
+    }
+  }
+  return index;
 }
 
 int ScrollDown(int maxSize, int index) {
@@ -264,7 +289,7 @@ int ScrollDown(int maxSize, int index) {
   }
   return index;
 }
-
+/*
 int ScrollUp(int maxSize, int index) {
   if (selected != MIN_OPTIONS) {
     selected += GO_UP;
@@ -276,6 +301,24 @@ int ScrollUp(int maxSize, int index) {
       index += GO_UP;
     }
   }
+}
+*/
+
+int ScrollUp(int maxSize, int index) {
+  if (selected != MIN_OPTIONS) {
+    selected = MIN_OPTIONS;
+    Serial.println("sel");
+  } else {
+    selected = MAX_OPTIONS;
+    if (index == 0) {
+      index = maxSize - MAX_OPTIONS - 1;
+      Serial.println("max");
+    } else {
+      index += GO_UP;
+      Serial.println("up");
+    }
+  }
+  return index;
 }
 
 void printPlantsNames(void) {

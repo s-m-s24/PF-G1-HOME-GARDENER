@@ -2,7 +2,7 @@
 #include <LiquidCrystal_I2C.h>  //21: SDA || 22: SLC
 
 struct Plant {
-  int PlantID;
+  int moduleID;
   String plantName;
   String tempStatus;
   String humStatus;
@@ -15,6 +15,8 @@ struct IdealValues {
   int tempIdeal;
   int humIdeal;
 };
+
+int plantZone;
 
 struct PlantReads {
   int tempRead;

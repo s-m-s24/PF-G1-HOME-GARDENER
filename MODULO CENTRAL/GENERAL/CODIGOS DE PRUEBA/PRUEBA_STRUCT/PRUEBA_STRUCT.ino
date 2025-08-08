@@ -9,6 +9,8 @@ struct Plant {
   String name;
   int temp;
   int humid;
+  timestamp horaRegada;
+  
 };
 Plant tomate = {"tomate", 1, 2};
 

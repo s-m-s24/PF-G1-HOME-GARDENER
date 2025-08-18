@@ -60,7 +60,7 @@ int readsMade = 0;
 #define LED_ON 5
 
 #define PUSHED LOW
-#define N_PUSHED HIGH
+#define N_PUSHED !PUSHED
 
 #define TEMP_IDEAL 20
 #define TEMP_OK_RANGE 5
@@ -98,24 +98,24 @@ bool ReadButtonDown = N_PUSHED;
 bool ReadButtonOk = N_PUSHED;
 bool ReadButtonWater = N_PUSHED;
 
-bool selected = 0;
+bool selected = MIN_OPTIONS;
 int printIndex = 0;
 unsigned long lastPrint = 0;
 #define T_PRINT 1000
 unsigned long now = 0;
 
-#define SCREEN_MODEL 0x27
+#define I2C_DIRECTION 0x27
 #define SCREEN_LENGHT 16
 #define SCREEN_HEIGHT 2
 
-LiquidCrystal_I2C lcd(SCREEN_MODEL, SCREEN_LENGHT, SCREEN_HEIGHT);
+LiquidCrystal_I2C lcd(I2C_DIRECTION, SCREEN_LENGHT, SCREEN_HEIGHT);
 
 // Declaración de funciones
 int ScrollDown(int, int);
 int ScrollUp(int, int);
-void printPlantsNames(void);
-void printPlantsDetails(void);
-String filterReads(int, int, int, int, int, int);
+void PrintPlantsNames(void);
+void PrintPlantsDetails(void);
+String FilterReads(int, int, int, int, int, int);
 
 void setup() {
   Serial.begin(9600);
@@ -169,27 +169,31 @@ void loop() {
     case HOME:
       int chosenPlant;
       if (ReadButtonDown == PUSHED) {
-        Serial.println("pre down");
-        while ((ReadButtonDown == PUSHED) || (readsMade < MIN_READS)) {
-          Serial.println("wait");
+        //Serial.println("pre down");
+        while (ReadButtonDown == PUSHED) {
+          while (readsMade < MIN_READS) {
+            //Serial.println("wait");
+            ReadButtonDown = digitalRead(BUTTON_DOWN);
+            readsMade = readsMade + 1;
+          }
           ReadButtonDown = digitalRead(BUTTON_DOWN);
-          readsMade = readsMade + 1;
         }
         printIndex = ScrollDown(plants.getSize(), printIndex);
-        Serial.println("down");
         readsMade = 0;
       }
 
       if (ReadButtonUp == PUSHED) {
-        Serial.println("pre up");
+        //Serial.println("pre up");
+        /*
         while ((ReadButtonUp == PUSHED) || (readsMade < MIN_READS)) {
-          Serial.println("wait");
+          //Serial.println("wait");
           ReadButtonUp = digitalRead(BUTTON_UP);
           readsMade = readsMade + 1;
         }
         printIndex = ScrollUp(plants.getSize(), printIndex);
-        Serial.println("up");
-        readsMade = 0;
+        //Serial.println("up");
+        readsMade = 0;*/
+        actualState = UP;
       }
 
       if (ReadButtonOk == PUSHED) {
@@ -214,6 +218,12 @@ void loop() {
       }
       break;
 
+    case UP:
+      if (ReadButtonDown == N_PUSHED) {
+        printIndex = ScrollUp(plants.getSize(), printIndex);
+        actualState = HOME;
+      }
+      break;
     case PRINT:
       Serial.println(selected);
       if (now - lastPrint >= T_PRINT) {
@@ -242,11 +252,11 @@ void loop() {
       }
       break;
 
-    case PROCESS_LECTURES:  // Hacer función?
+    case PROCESS_LECTURES:
       for (int process = 0; process <= plants.getSize(); process++) {
         Serial.println(process);
-        //plants.get(process).tempStatus = filterReads(plantReads.get(process).tempRead, MIN_TEMP, MAX_TEMP, idealValues.get(process).tempIdeal, TEMP_OK_RANGE, TEMP_EXCEED_RANGE);
-        //plants.get(process).humStatus = filterReads(plantReads.get(process).humRead, MIN_HUM, MAX_HUM, idealValues.get(process).humIdeal, HUM_OK_RANGE, HUM_EXCEED_RANGE);
+        plants.get(process).tempStatus = filterReads(plantReads.get(process).tempRead, MIN_TEMP, MAX_TEMP, idealValues.get(process).tempIdeal, TEMP_OK_RANGE, TEMP_EXCEED_RANGE);
+        plants.get(process).humStatus = filterReads(plantReads.get(process).humRead, MIN_HUM, MAX_HUM, idealValues.get(process).humIdeal, HUM_OK_RANGE, HUM_EXCEED_RANGE);
       }
       actualState = HOME;
       break;
@@ -259,63 +269,40 @@ void loop() {
   }
 }
 //CONVERTIR EN DOWNNN
-int ScrollUp(int maxSize, int index) {
-  if (selected != MIN_OPTIONS) {
-    selected = MIN_OPTIONS;
-    Serial.println("sel");
-  } else {
-    selected = MAX_OPTIONS;
-    if (index == 0) {
-      index = maxSize - MAX_OPTIONS - 1;
-      Serial.println("max");
-    } else {
-      index += GO_UP;
-      Serial.println("up");
-    }
-  }
-  return index;
-}
-
 int ScrollDown(int maxSize, int index) {
-  if (selected == MAX_OPTIONS) {
+  if (selected != MAX_OPTIONS) {
     selected = MIN_OPTIONS;
-    if (maxSize == (index + MAX_OPTIONS + 1)) {
+    index += GO_DOWN;
+    //Serial.println("sel");
+    Serial.println("down");
+  } else {
+    Serial.println("down");
+    selected = MIN_OPTIONS;
+    if (index == maxSize - MAX_OPTIONS - 1) {
       index = 0;
+      //Serial.println("min");
     } else {
       index += GO_DOWN;
+      //Serial.println("down");
     }
-  } else {
-    selected += GO_DOWN;
   }
   return index;
 }
-/*
-int ScrollUp(int maxSize, int index) {
-  if (selected != MIN_OPTIONS) {
-    selected += GO_UP;
-  } else {
-    selected = MAX_OPTIONS;
-    if (index == 0) {
-      index = maxSize - MAX_OPTIONS - 1;
-    } else {
-      index += GO_UP;
-    }
-  }
-}
-*/
 
 int ScrollUp(int maxSize, int index) {
   if (selected != MIN_OPTIONS) {
-    selected = MIN_OPTIONS;
-    Serial.println("sel");
+    selected = selected + GO_UP;
+    //Serial.println("sel");
+    Serial.println("up");
   } else {
+    Serial.println("up");
     selected = MAX_OPTIONS;
     if (index == 0) {
       index = maxSize - MAX_OPTIONS - 1;
-      Serial.println("max");
+      //Serial.println("max");
     } else {
       index += GO_UP;
-      Serial.println("up");
+      //Serial.println("up");
     }
   }
   return index;
@@ -327,6 +314,7 @@ void printPlantsNames(void) {
   lcd.setCursor(0, selected);
   lcd.print("*");
   for (int printed = 0; printed <= MAX_OPTIONS; printed++) {
+    String actualParameter = plantPrint.get(printIndex + printed);
     lcd.setCursor(1, printed);
     lcd.print(plants.get(printIndex + printed).plantName);
   }

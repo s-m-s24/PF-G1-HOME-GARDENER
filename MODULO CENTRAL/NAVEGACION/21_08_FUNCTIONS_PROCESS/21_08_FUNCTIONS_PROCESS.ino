@@ -106,21 +106,21 @@ unsigned long lastRead = 0;
 #define T_READ 5
 
 //BOTÓN 1:
-void antiReboteBoton1 (void);
+void antiReboteBoton1(void);
 //Boton
 #define ESPERA_BOT1 1
 #define CONFIRMACION_BOT1 2
 #define LIBERACION_BOT1 3
-bool flagBot1 = N_PUSHED; //
+bool flagBot1 = N_PUSHED;  //
 int estadoMaquinaBoton1 = ESPERA_BOT1;
 
 //BOTÓN 1:
-void antiReboteBoton2 (void);
+void antiReboteBoton2(void);
 //Boton
 #define ESPERA_BOT2 1
 #define CONFIRMACION_BOT2 2
 #define LIBERACION_BOT2 3
-bool flagBot2 = N_PUSHED; //
+bool flagBot2 = N_PUSHED;  //
 int estadoMaquinaBoton2 = ESPERA_BOT2;
 
 #define I2C_DIRECTION 0x27
@@ -185,14 +185,12 @@ void loop() {
   ReadButtonUp = digitalRead(BUTTON_UP);
   ReadButtonOk = digitalRead(BUTTON_OK);
   ReadButtonWater = digitalRead(BUTTON_WATER);
-  /*
-  Serial.print("UP:");
-  Serial.print(ReadButtonUp);
-  Serial.print(" | DOWN:");
-  Serial.print(ReadButtonDown);
-  Serial.print(" | OK:");
-  Serial.print(ReadButtonOk);
-  */
+  //Serial.print("UP:");
+  //Serial.print(ReadButtonUp);
+  //Serial.print(" | DOWN:");
+  //Serial.print(ReadButtonDown);
+  //Serial.print(" | OK:");
+  //Serial.println(ReadButtonOk);
 
   now = millis();
   //Serial.println(actualState);
@@ -200,19 +198,16 @@ void loop() {
   switch (actualState) {
     case HOME:
       int chosenPlant;
-      if (ReadButtonDown == PUSHED) {
-        antiReboteBoton1();
-      }
+      antiReboteBoton1();
+      antiReboteBoton2();
 
-      if (ReadButtonUp == PUSHED) {
-        antiReboteBoton2();
-      }
-
-      if (flagBot2 == PUSHED){
+      if (flagBot2 == PUSHED) {
         printIndex = ScrollUp(plants.getSize(), printIndex);
+        flagBot2 = N_PUSHED;
       }
-      if (flagBot1 == PUSHED){
+      if (flagBot1 == PUSHED) {
         printIndex = ScrollDown(plants.getSize(), printIndex);
+        flagBot1 = N_PUSHED;
       }
 
       if (ReadButtonOk == PUSHED) {
@@ -258,25 +253,24 @@ void loop() {
         printPlantsDetails();
         lastPrint = millis();
       }
-
+      /*
+      
+      */
       if (ReadButtonDown == PUSHED) {
-        Serial.println("pre down");
-        while (ReadButtonDown == PUSHED) {
-          Serial.println("wait");
-          ReadButtonDown = digitalRead(BUTTON_DOWN);
-        }
-        printDetail = ScrollDown(plantPrint.getSize(), printDetail);
-        Serial.println("down");
+        antiReboteBoton1();
       }
 
       if (ReadButtonUp == PUSHED) {
-        Serial.println("pre up");
-        while (ReadButtonUp == PUSHED) {
-          Serial.println("wait");
-          ReadButtonUp = digitalRead(BUTTON_UP);
-        }
+        antiReboteBoton2();
+      }
+
+      if (flagBot2 == PUSHED) {
         printDetail = ScrollUp(plantPrint.getSize(), printDetail);
-        Serial.println("UP");
+        flagBot2 = N_PUSHED;
+      }
+      if (flagBot1 == PUSHED) {
+        printDetail = ScrollDown(plantPrint.getSize(), printDetail);
+        flagBot1 = N_PUSHED;
       }
       break;
 
@@ -379,8 +373,10 @@ void printPlantsDetails() {
   for (int infoShown = 0; infoShown <= MAX_OPTIONS; infoShown++) {
     lcd.setCursor(1, infoShown);
     lcd.print(plantPrint.get(printIndex + infoShown));
+    Serial.println(plantPrint.get(printIndex + infoShown));
     lcd.setCursor(9, infoShown);
     lcd.print(plantInfo.get(printIndex + infoShown));
+    Serial.println(plantInfo.get(printIndex + infoShown));
   }
 }
 
@@ -418,102 +414,92 @@ String filterReads(int lecture, int MIN, int MAX, int IDEAL, int OK_RANGE, int E
   return status;
 }
 
-void antiReboteBoton1 (void)
-{
+void antiReboteBoton1(void) {
   bool estadoBoton1 = digitalRead(BUTTON_DOWN);
+  //Serial.print(estadoBoton1);
+  //Serial.print(" | ");
   //Serial.println("inicio");
-  switch (estadoMaquinaBoton1)
-  {
+  switch (estadoMaquinaBoton1) {
     unsigned long lastReadBot;
     case ESPERA_BOT1:
       //Serial.println("espera");
-      if (estadoBoton1 == PUSHED)
-      {
+      if (estadoBoton1 == PUSHED) {
         estadoMaquinaBoton1 = CONFIRMACION_BOT1;
-        Serial.println("confirmo");
+        //Serial.println("confirmo");
       }
       break;
 
     case CONFIRMACION_BOT1:
-      Serial.println("confirmo");
-      Serial.print(lastReadBot - now);
-      Serial.print(" | ");
-      Serial.println(estadoBoton1);
-      if (((lastReadBot - now) >= T_READ) && (estadoBoton1 == N_PUSHED))
-      {
+      //Serial.println("confirmo");
+      //Serial.print(lastReadBot - now);
+      //Serial.print(" | ");
+      //Serial.println(estadoBoton1);
+      if (((lastReadBot - now) >= T_READ) && (estadoBoton1 == N_PUSHED)) {
         estadoMaquinaBoton1 = ESPERA_BOT1;
-        Serial.println("espero");
+        //Serial.println("espero");
       }
-      if (((lastReadBot - now) >= T_READ) && (estadoBoton1 == PUSHED))
-      {
+      if (((lastReadBot - now) >= T_READ) && (estadoBoton1 == PUSHED)) {
         estadoMaquinaBoton1 = LIBERACION_BOT1;
-        Serial.println("libero");
+        //Serial.println("libero");
         //flag de Flanco boton PUSHED.
       }
       break;
 
     case LIBERACION_BOT1:
-      if (estadoBoton1 == N_PUSHED)
-      {
+      //Serial.println("lib:");
+      if (estadoBoton1 == N_PUSHED) {
         flagBot1 = PUSHED;
         estadoMaquinaBoton1 = ESPERA_BOT1;
-       Serial.println("PUSHED");
+        //Serial.println("PUSHED");
       }
       break;
-
-
   }
+  return;
 }
 
-void antiReboteBoton2 (void)
-{
+void antiReboteBoton2(void) {
   //PONER LOS FLAGS EN N_PUSHED CUANDO LLAMO AL SCROLL
   //VER PQ CARAJOS NO ANDAN LOS ANTIRREBOTS
   //CONSEGUIR QUE IMPRIMA BIEN LOS DETALLES
   bool estadoBoton2 = digitalRead(BUTTON_UP);
-  Serial.println(estadoMaquinaBoton2);
-switch (estadoMaquinaBoton2)
-  {
+  //Serial.print(estadoBoton2);
+  //Serial.print(" | ");
+  switch (estadoMaquinaBoton2) {
     unsigned long lastReadBot;
     case ESPERA_BOT2:
       //Serial.println("espera");
-      if (estadoBoton2 == PUSHED)
-      {
+      if (estadoBoton2 == PUSHED) {
         estadoMaquinaBoton2 = CONFIRMACION_BOT2;
-        Serial.println("confirmo");
+        //Serial.println("confirmo");
       }
       break;
 
     case CONFIRMACION_BOT2:
-      Serial.println("confirmo");
-      Serial.print(lastReadBot - now);
-      Serial.print(" | ");
-      Serial.println(estadoBoton2);
+      //Serial.println("confirmo");
+      //Serial.print(lastReadBot - now);
+      //Serial.print(" | ");
+      //Serial.println(estadoBoton2);
       estadoBoton2 = digitalRead(BUTTON_UP);
-      if (((lastReadBot - now) >= T_READ) && (estadoBoton2 == N_PUSHED))
-      {
+      if (((lastReadBot - now) >= T_READ) && (estadoBoton2 == N_PUSHED)) {
         estadoMaquinaBoton2 = ESPERA_BOT2;
-        Serial.println("espero");
+        //Serial.println("espero");
       }
-      if (((lastReadBot - now) >= T_READ) && (estadoBoton2 == PUSHED))
-      {
+      if (((lastReadBot - now) >= T_READ) && (estadoBoton2 == PUSHED)) {
         estadoMaquinaBoton2 = LIBERACION_BOT2;
-        Serial.println("libero");
+        //Serial.println("libero");
         //flag de Flanco boton PUSHED.
       }
-      Serial.println(estadoMaquinaBoton2);
+      //Serial.println(estadoMaquinaBoton2);
       break;
 
     case LIBERACION_BOT2:
-    Serial.println("lib:");
-      if (estadoBoton2 == N_PUSHED)
-      {
+      //Serial.println("lib:");
+      if (estadoBoton2 == N_PUSHED) {
         flagBot2 = PUSHED;
         estadoMaquinaBoton2 = ESPERA_BOT2;
-       Serial.println(" PUSHED");
+        //Serial.println(" PUSHED");
       }
       break;
-
-
   }
+  return;
 }

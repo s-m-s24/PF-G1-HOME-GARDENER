@@ -1,9 +1,9 @@
-#include <LiquidCrystal_I2C.h> //21: SDA || 22: SLC
+//#include <LiquidCrystal_I2C.h> //21: SDA || 22: SLC
 
-#define BUTTON_UP 25
-#define BUTTON_DOWN 26
-#define BUTTON_OK 27
-#define BUTTON_WATER 33
+#define BUTTON_UP 26
+#define BUTTON_DOWN 27
+#define BUTTON_OK 33
+#define BUTTON_WATER 25
 
 #define LED_WATER 4
 #define LED_LOADING 15
@@ -17,7 +17,7 @@ bool ReadButtonDown = N_PUSHED;
 bool ReadButtonOk = N_PUSHED;
 bool ReadButtonWater = N_PUSHED;
 
-LiquidCrystal_I2C lcd(0x27,16,2);
+//LiquidCrystal_I2C lcd(0x27,16,2);
 
 void setup() {
   Serial.begin(115200);
@@ -30,7 +30,7 @@ void setup() {
   pinMode(LED_WATER,OUTPUT);
   pinMode(LED_ON,OUTPUT);
   pinMode(LED_LOADING,OUTPUT);
-
+/*
   // Inicializar el LCD
   lcd.init();
   
@@ -39,6 +39,8 @@ void setup() {
   
   // Escribimos el Mensaje en el LCD.
   lcd.print("Hola Mundo");
+
+*/
 }
 
 void loop() {
@@ -73,7 +75,7 @@ void loop() {
   } else {
     Serial.println("NOT PUSHED");
   }
-  
+  /*
   delay(500);
   digitalWrite(LED_LOADING,HIGH);
   digitalWrite(LED_WATER,HIGH);
@@ -82,10 +84,12 @@ void loop() {
   digitalWrite(LED_LOADING,LOW);
   digitalWrite(LED_WATER,LOW);
   digitalWrite(LED_ON,LOW);
-
-   // Ubicamos el cursor en la primera posición(columna:0) de la segunda línea(fila:1)
+  */
+/*
+ // Ubicamos el cursor en la primera posición(columna:0) de la segunda línea(fila:1)
   lcd.setCursor(0, 1);
    // Escribimos el número de segundos trascurridos
   lcd.print(millis()/1000);
   lcd.print(" Segundos");
+*/
 }

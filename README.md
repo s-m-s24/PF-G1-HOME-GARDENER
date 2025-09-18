@@ -1,5 +1,7 @@
 # BLE en ESP32
 
+* [**Mesh Connection ESP32 BLE**](/.BLE_ESP.md)
+
 ### For starters: BLE = Bluetooth Low Energy
 
 ## ¿Cuál es la diferencia entre el Bluetooth y el BLE?
@@ -38,3 +40,11 @@ La _characteristic_ va a pertenecer siempre al servidor
 Cada dispositivo o characteristic va a tener un **UUID** (_Universally Unique Identifier_). Un UUID es una secuencia única de _128 bits_ (16 bytes). Por ejemplo:
 
 `55072829-bc9e-4c53-938a-74a6d4c78776`
+
+Esto nos va a permitir que los dispositivos se identifiquen entre sí y puedan intercambiar los datos.
+
+`#define SERVICE_UUID "4fafc201-1fb5-459e-8fcc-c5c9c331914b"` 
+`#define CHARACTERISTIC_UUID "beb5483e-36e1-4688-b7f5-ea07361b26a8" `
+
+Para crear tus propios UUIDs, visita https://www.uuidgenerator.net/ 
+

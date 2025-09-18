@@ -1,6 +1,6 @@
 # BLE en ESP32
 
-* [**Mesh Connection ESP32 BLE**](/.BLE_ESP.md)
+* [**Mesh Connection  ESP32 BLE**](./BLE_ESP.md)
 
 ### For starters: BLE = Bluetooth Low Energy
 

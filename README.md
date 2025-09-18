@@ -27,4 +27,5 @@ Tenemos _**dos modos**_ de comunicación:
 
 **GATT** significa _Generic Attributes_ y define cómo los dispositivos BLE envían y reciben mensajes.
 
-(https://www.google.com/imgres?q=gatt%20ble&imgurl=https%3A%2F%2Fi0.wp.com%2Frandomnerdtutorials.com%2Fwp-content%2Fuploads%2F2018%2F06%2FGATT-BLE-ESP32.png%3Fresize%3D750%252C421%26quality%3D100%26strip%3Dall%26ssl%3D1&imgrefurl=https%3A%2F%2Frandomnerdtutorials.com%2Fesp32-ble-server-environmental-sensing-service%2F&docid=P01ZWubwoDMh1M&tbnid=zeD9tJ8E_LxS7M&vet=12ahUKEwiGt6vv7-KPAxUBq5UCHQJmCu4QM3oECCAQAA..i&w=750&h=421&hcb=2&ved=2ahUKEwiGt6vv7-KPAxUBq5UCHQJmCu4QM3oECCAQAA)
+
+!(GRAFICO GATT https://www.google.com/imgres?q=gatt%20ble&imgurl=https%3A%2F%2Fi0.wp.com%2Frandomnerdtutorials.com%2Fwp-content%2Fuploads%2F2018%2F06%2FGATT-BLE-ESP32.png%3Fresize%3D750%252C421%26quality%3D100%26strip%3Dall%26ssl%3D1&imgrefurl=https%3A%2F%2Frandomnerdtutorials.com%2Fesp32-ble-server-environmental-sensing-service%2F&docid=P01ZWubwoDMh1M&tbnid=zeD9tJ8E_LxS7M&vet=12ahUKEwiGt6vv7-KPAxUBq5UCHQJmCu4QM3oECCAQAA..i&w=750&h=421&hcb=2&ved=2ahUKEwiGt6vv7-KPAxUBq5UCHQJmCu4QM3oECCAQAA)

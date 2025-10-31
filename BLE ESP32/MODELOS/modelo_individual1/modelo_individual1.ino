@@ -15,13 +15,12 @@ uint8_t esp3Adress[] = { 0xD4, 0x8A, 0xFC, 0xCF, 0x1F, 0x94 };  // central modul
 
 // Structure to receive data -- must match the sender structure
 typedef struct central_actions_message {
-  bool water_plants = false;
-  bool send_data = false;  // send sensors data
-  bool sleep = false;      // a dormir
+  bool water_plants;
+  bool send_data;  // send sensors data
+  bool sleep;      // a dormir
 } central_actions_message;
 
 // STRUCT QUE VA A DEVOLVER
-
 typedef struct individual_data_message {
   float tempRead;
   float humRead;
@@ -55,7 +54,6 @@ void OnDataRecv(const uint8_t *mac, const uint8_t *incomingData, int len) {
   Serial.print("SLEEP: ");
   Serial.println(myData.sleep);
   Serial.println();
-
 }
 
 void setup() {
@@ -70,7 +68,7 @@ void setup() {
     Serial.println("Error initializing ESP-NOW");
     return;
   }
-    // Once ESPNow is successfully Init, we will register for Send CB to get the status of Trasnmitted packet
+  // Once ESPNow is successfully Init, we will register for Send CB to get the status of Trasnmitted packet
   esp_now_register_send_cb(OnDataSent);
 
   // Register peer
@@ -85,4 +83,36 @@ void setup() {
 }
 
 void loop() {
+
+  sendData.tempRead = 56;
+  sendData.humRead = 15.4;
+  sendData.timestamp = "hola";
+
+  int lec_botesp1 = digitalRead(BOT_ESP1);
+  switch (estadoActual) {
+    case ESTADO_ESPERA:
+      Serial.println("Estado Espera");
+
+      if (myData.send_data == false) {
+        Serial.println("Datos requeridos. Enviando a ESP3 (CENTRAL)...");
+        esp_err_t result = esp_now_send(esp3Adress, (uint8_t *)&sendData, sizeof(sendData));
+        if (result == ESP_OK) {
+          Serial.println("Sent to ESP1 with success");
+        } else {
+          Serial.println("Error sending to ESP1");
+        }
+        myData.send_data = true;
+      }
+      break;
+
+    case ESTADO_CONFIRMAR_BOT1:
+      if (lec_botesp1 == HIGH) {
+        flagBoton = true;
+        estadoActual = ESTADO_ESPERA;
+      }
+      break;
+
+    
+  }
+  delay (2000);
 }

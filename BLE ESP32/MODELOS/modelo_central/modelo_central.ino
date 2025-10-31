@@ -1,5 +1,4 @@
 // CODIGO PARA EL ESP NUMERO 3
-
 // perdon sofi sama me inspire y lo hice todo en ingles <3
 
 #include <esp_now.h>
@@ -16,17 +15,19 @@ int estadoActual = ESTADO_ESPERA;
 bool flagBot2 = false;
 bool flagBot1 = false;
 
+String instruction = "";
+
 // REPLACE WITH YOUR RECEIVER MAC Address
-uint8_t esp2Adress[] = { 0xC0, 0x49, 0xEF, 0x69, 0xCB, 0x48 }; // num2
+uint8_t esp2Adress[] = { 0xC0, 0x49, 0xEF, 0x69, 0xCB, 0x48 };  // num2
 uint8_t esp1Adress[] = { 0xB8, 0xD6, 0x1A, 0xA7, 0x6F, 0xB8 };  // direccion mac esp1 b8:d6:1a:a7:6f:b8
 
 
 // !!!!! Structure example to send data - Must match the receiver structure !!!!!
 // LO QUE VA A MANDAR
-typedef struct central_actions_message { 
-  bool water_plants = false;
-  bool send_data = false;
-  bool sleep = false;
+typedef struct central_actions_message {
+  bool water_plants;
+  bool send_data;
+  bool sleep;
 } central_actions_message;
 
 // LO QUE VA A RECIBIR -- not important 4now
@@ -36,12 +37,16 @@ typedef struct individual_data_message {
   String lastRead;
   String lastWater;
   String timestamp;
-} individual_data_message
+} individual_data_message;
 
 // Create a central_actions_message called centralDataESP[X] (depends on which esp of the individual module you are using)
 
 central_actions_message centralDataESP;
 central_actions_message centralDataESP1;
+
+
+individual_data_message individualDataESP1;
+
 
 esp_now_peer_info_t peerInfo;
 
@@ -49,6 +54,24 @@ esp_now_peer_info_t peerInfo;
 void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
   Serial.print("\r\nLast Packet Send Status:\t");
   Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
+}
+
+// data recieve callback
+void OnDataRecv(const uint8_t *mac, const uint8_t *incomingData, int len) {
+  memcpy(&individualDataESP1, incomingData, sizeof(individualDataESP1));
+  Serial.print("Bytes received: ");
+  Serial.println(len);
+  Serial.print("TEMP: ");
+  Serial.println(individualDataESP1.tempRead);
+  Serial.print("HUM: ");
+  Serial.println(individualDataESP1.humRead);
+  Serial.print("LAST READ: ");
+  Serial.println(individualDataESP1.lastRead);
+  Serial.print("LAST WATER: ");
+  Serial.println(individualDataESP1.lastWater);
+  Serial.print("TIMESTAMP: ");
+  Serial.println(individualDataESP1.timestamp);
+  Serial.println();
 }
 
 void setup() {
@@ -81,78 +104,89 @@ void setup() {
   if (esp_now_add_peer(&peerInfo) != ESP_OK) {
     Serial.println("Failed to add peer 1");
   }
+  esp_now_register_recv_cb(esp_now_recv_cb_t(OnDataRecv));
 }
 
 void loop() {
-  // set values to send
-  int lec_botesp2 = digitalRead(BOT_ESP2);
-  int lec_botesp1 = digitalRead(BOT_ESP1);
-
-  centralDataESP.water_plants = true;
-  centralDataESP.send_data = true;
-  centralDataESP.sleep = false;
-
-  strcpy(centralDataESPE1.a, "char esp1");
-  centralDataESP1.b = random(1, 3);
-  centralDataESP1.c = 0.8;
-  centralDataESP1.d = true;
-
-  switch (estadoActual) {
-
-    case ESTADO_ESPERA:
-      Serial.println("estado espera");
-      if (lec_botesp2 == LOW) {
-        estadoActual = ESTADO_CONFIRMAR_BOT2;
+  if (Serial.available() > 0) {
+    instruction = Serial.readStringUntil('\n');
+    instruction.trim();
+    if (instruction.equals("send")) {
+      Serial.println("Boton 1 presionado. Enviando a esp1Adress...");
+      esp_err_t result = esp_now_send(esp1Adress, (uint8_t *)&centralDataESP1, sizeof(centralDataESP1));
+      if (result == ESP_OK) {
+        Serial.println("Sent to ESP1 with success");
+      } else {
+        Serial.println("Error sending to ESP1");
       }
-
-      if (lec_botesp1 == LOW) {
-        estadoActual = ESTADO_CONFIRMAR_BOT1;
-      }
-
-      if (flagBot2 == true) {
-        // envía mensaje
-        Serial.println("flag2 true");
-        esp_err_t result = esp_now_send(esp2Adress, (uint8_t *)&centralDataESP, sizeof(centralDataESP));
-
-        if (result == ESP_OK) {
-          Serial.println("Sent with success");
-        } else {
-          Serial.println("Error sending the data");
-        }
-        flagBot2 = false;
-      }
-
-      if (flagBot1 == true) {
-        Serial.println("Boton 1 presionado. Enviando a esp1Adress...");
-        esp_err_t result = esp_now_send(esp1Adress, (uint8_t *)&centralDataESP1, sizeof(centralDataESP1));
-        if (result == ESP_OK) {
-          Serial.println("Sent to ESP1 with success");
-        } else {
-          Serial.println("Error sending to ESP1");
-        }
-                flagBot1 = false;
-
-      }
-      break;
-
-    case ESTADO_CONFIRMAR_BOT2:
-      Serial.println("estado confirmar boton");
-      if (lec_botesp2 == HIGH) {
-        flagBot2 = true;
-        estadoActual = ESTADO_ESPERA;
-      }
-      break;
-
-    case ESTADO_CONFIRMAR_BOT1:
-      if (lec_botesp1 == HIGH) {
-        flagBot1 = true;
-        estadoActual = ESTADO_ESPERA;
-      }
-      break;
+    }
   }
 
 
-  // Send message via ESP-NOW
+// set values to send
+int lec_botesp2 = digitalRead(BOT_ESP2);
+int lec_botesp1 = digitalRead(BOT_ESP1);
 
-  delay(2000);
+centralDataESP.water_plants = true;
+centralDataESP.send_data = true;
+centralDataESP.sleep = false;
+centralDataESP = centralDataESP1;
+
+
+switch (estadoActual) {
+
+  case ESTADO_ESPERA:
+    if (lec_botesp2 == LOW) {
+      estadoActual = ESTADO_CONFIRMAR_BOT2;
+    }
+
+    if (lec_botesp1 == LOW) {
+      estadoActual = ESTADO_CONFIRMAR_BOT1;
+    }
+
+    if (flagBot2 == true) {
+      // envía mensaje
+      Serial.println("flag2 true");
+      esp_err_t result = esp_now_send(esp2Adress, (uint8_t *)&centralDataESP, sizeof(centralDataESP));
+
+      if (result == ESP_OK) {
+        Serial.println("Sent with success");
+      } else {
+        Serial.println("Error sending the data");
+      }
+      flagBot2 = false;
+    }
+
+    if (flagBot1 == true) {
+      Serial.println("Boton 1 presionado. Enviando a esp1Adress...");
+      esp_err_t result = esp_now_send(esp1Adress, (uint8_t *)&centralDataESP1, sizeof(centralDataESP1));
+      if (result == ESP_OK) {
+        Serial.println("Sent to ESP1 with success");
+      } else {
+        Serial.println("Error sending to ESP1");
+      }
+      flagBot1 = false;
+    }
+    break;
+
+  case ESTADO_CONFIRMAR_BOT2:
+    Serial.println("estado confirmar boton");
+    if (lec_botesp2 == HIGH) {
+      flagBot2 = true;
+      estadoActual = ESTADO_ESPERA;
+    }
+    break;
+
+  case ESTADO_CONFIRMAR_BOT1:
+    if (lec_botesp1 == HIGH) {
+      flagBot1 = true;
+      estadoActual = ESTADO_ESPERA;
+    }
+    break;
+}
+
+
+// Send message via ESP-NOW
+
+delay(2000);
 }

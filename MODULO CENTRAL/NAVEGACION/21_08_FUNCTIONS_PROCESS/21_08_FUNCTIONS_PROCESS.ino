@@ -6,8 +6,8 @@ struct Plant {
   String plantName;
   String tempStatus;
   String humStatus;
-  String lastRead;     //ÚLTIMA VEZ QUE LEÍ
-  String lastWater;    //ÚLTIMA VEZ QUE REGUÉ
+  String lastRead;  //ÚLTIMA VEZ QUE LEÍ
+  String lastWater;
   String timeWatered;  //TIEMPO QUE REGUÉ
 };
 
@@ -20,8 +20,8 @@ struct IdealValues {
 
 struct PlantReads {
   int tempRead;
-  int humRead;
-  int lastRead;
+  int humRead;   //TIEMPO QUE REGUÉ
+  int lastRead;  //ÚLTIMA VEZ QUE LEÍ
   int lastWater;
 };
 
@@ -29,12 +29,12 @@ List<Plant> plants(true);             // HECHA: Lista de objetos de planta con l
 List<IdealValues> idealValues(true);  // HECHA: Lista de valores ideales según tipo de planta
 List<PlantReads> plantReads(true);    // HECHA: Lista de lecturas según planta: valores no procesados
 List<String> plantPrint(true);        // HECHA: Lista de parámetros a imprimir en la pantalla
-List<String> plantInfo(true);         // HECHA: Lista de info de la planta elegida a imprimir en la pantalla
+List<String> plantInfo(false);        // HECHA: Lista de info de la planta elegida a imprimir en la pantalla
 
-Plant tomate = { 1, "Tomate", "", "", "1100", "202", "3" };
-Plant pepino = { 2, "Pepino", "", "", "2000", "18", "1" };
-Plant rucula = { 3, "Rucula", "", "", "400", "100", "0" };
-Plant choclo = { 4, "Choclo", "", "", "808", "750", "5" };
+Plant tomate = { 1, "Tomate", "MALO", "BUENO", "1100", "202", "3" };
+Plant pepino = { 2, "Pepino", "BIEN", "MUY BUENO", "2000", "18", "1" };
+Plant rucula = { 3, "Rucula", "CASI", "MUY MAL", "400", "100", "0" };
+Plant choclo = { 4, "Choclo", "MALO", "BIEN", "808", "750", "5" };
 IdealValues tomateValues = { 15, 1000, 3, true };
 IdealValues pepinoValues = { 20, 1500, 4, true };
 IdealValues ruculaValues = { 5, 800, 3, false };
@@ -88,7 +88,7 @@ bool mustWater = false;
 #define GO_UP -1
 #define GO_DOWN 1
 
-int actualState = PROCESS_LECTURES;
+int actualState = HOME;
 int returnState = HOME;
 int printDetail;
 
@@ -144,12 +144,12 @@ void setup() {
   plants.add(rucula);
   plants.add(choclo);
 
-  plantPrint.add("Nombre");
-  plantPrint.add("Temp");
-  plantPrint.add("Hum");
-  plantPrint.add("Leído");
-  plantPrint.add("Regado");
-  plantPrint.add("T riego");
+  plantPrint.add(String("Nombre"));
+  plantPrint.add(String("Temp"));
+  plantPrint.add(String("Hum"));
+  plantPrint.add(String("Leído"));
+  plantPrint.add(String("Regado"));
+  plantPrint.add(String("T riego"));
 
   idealValues.add(tomateValues);
   idealValues.add(pepinoValues);
@@ -181,22 +181,25 @@ void setup() {
 
 void loop() {
   //Serial.println("");
-  ReadButtonDown = digitalRead(BUTTON_DOWN);
-  ReadButtonUp = digitalRead(BUTTON_UP);
-  ReadButtonOk = digitalRead(BUTTON_OK);
-  ReadButtonWater = digitalRead(BUTTON_WATER);
-  //Serial.print("UP:");
-  //Serial.print(ReadButtonUp);
-  //Serial.print(" | DOWN:");
-  //Serial.print(ReadButtonDown);
-  //Serial.print(" | OK:");
-  //Serial.println(ReadButtonOk);
 
   now = millis();
   //Serial.println(actualState);
 
   switch (actualState) {
     case HOME:
+      ReadButtonDown = digitalRead(BUTTON_DOWN);
+      ReadButtonUp = digitalRead(BUTTON_UP);
+      ReadButtonOk = digitalRead(BUTTON_OK);
+      ReadButtonWater = digitalRead(BUTTON_WATER);
+      Serial.print("UP:");
+      Serial.print(ReadButtonUp);
+      Serial.print(" | DOWN:");
+      Serial.print(ReadButtonDown);
+      Serial.print(" | OK:");
+      Serial.print(ReadButtonOk);
+      Serial.print(" | SIZE:");
+      Serial.println(plants.getSize());
+
       int chosenPlant;
       antiReboteBoton1();
       antiReboteBoton2();
@@ -215,18 +218,46 @@ void loop() {
           Serial.println("wait");
           ReadButtonOk = digitalRead(BUTTON_OK);
         }
-        actualState = PRINT;
-        returnState = PRINT;
         chosenPlant = printIndex + selected;
-        plantInfo.add(plants.get(chosenPlant).plantName);
-        plantInfo.add(plants.get(chosenPlant).tempStatus);
-        plantInfo.add(plants.get(chosenPlant).humStatus);
-        plantInfo.add(plants.get(chosenPlant).lastRead);
-        plantInfo.add(plants.get(chosenPlant).lastWater);
-        plantInfo.add(plants.get(chosenPlant).timeWatered);
-        printPlantsDetails();
+        plantInfo.clear();
+        plantInfo.add(String(plants.get(chosenPlant).plantName));
+        Serial.print("NAME: ");
+        //Serial.println(plants.get(chosenPlant).plantName);
+        Serial.println(plantInfo.get(0));
+
+        plantInfo.add(String(plants.get(chosenPlant).tempStatus));
+        Serial.print("TEMP: ");
+        //Serial.println(plants.get(chosenPlant).tempStatus);
+        Serial.println(plantInfo.get(1));
+
+        plantInfo.add(String(plants.get(chosenPlant).humStatus));
+        Serial.print("HUM: ");
+        //Serial.println(plants.get(chosenPlant).humStatus);
+        Serial.println(plantInfo.get(2));
+
+        plantInfo.add(String(plants.get(chosenPlant).lastRead));
+        Serial.print("READ: ");
+        //Serial.println(plants.get(chosenPlant).lastRead);
+        Serial.println(plantInfo.get(3));
+
+        plantInfo.add(String(plants.get(chosenPlant).lastWater));
+        Serial.print("WATER: ");
+        //Serial.println(plants.get(chosenPlant).lastWater);
+        Serial.println(plantInfo.get(4));
+
+        plantInfo.add(String(plants.get(chosenPlant).timeWatered));
+        Serial.print("TIME: ");
+        //Serial.println(plants.get(chosenPlant).timeWatered);
+        Serial.println(plantInfo.get(5));
+
+        Serial.print("SIZE:");
+        Serial.println(plantInfo.getSize());
+        Serial.println(plantInfo.get(4));
+
         selected = MIN_OPTIONS;
         printDetail = MIN_OPTIONS;
+        actualState = PRINT;
+        printIndex = 0;
       } else if (now - lastPrint >= T_PRINT) {
         printPlantsNames();
         lastPrint = millis();
@@ -248,14 +279,11 @@ void loop() {
       }
       break;
     case PRINT:
-      Serial.println(selected);
+      //Serial.println(selected);
       if (now - lastPrint >= T_READ) {
         printPlantsDetails();
         lastPrint = millis();
       }
-      /*
-      
-      */
       if (ReadButtonDown == PUSHED) {
         antiReboteBoton1();
       }
@@ -275,6 +303,7 @@ void loop() {
       break;
 
     case PROCESS_LECTURES:
+      Serial.println("procesando...");
       int tempIndex;
       for (int process = 0; process < plants.getSize(); process++) {
         Serial.print(plants.get(process).plantName);
@@ -371,13 +400,15 @@ void printPlantsDetails() {
   lcd.setCursor(0, selected);
   lcd.print("*");
   for (int infoShown = 0; infoShown <= MAX_OPTIONS; infoShown++) {
-    lcd.setCursor(1, infoShown);
-    lcd.print(plantPrint.get(printIndex + infoShown));
-    Serial.println(plantPrint.get(printIndex + infoShown));
-    lcd.setCursor(9, infoShown);
-    lcd.print(plantInfo.get(printIndex + infoShown));
-    Serial.println(plantInfo.get(printIndex + infoShown));
+    int idx = printDetail + infoShown;
+    if (idx < plantPrint.getSize() && idx < plantInfo.getSize()) {
+      lcd.setCursor(1, infoShown);
+      lcd.print(plantPrint.get(idx));
+      lcd.setCursor(9, infoShown);
+      lcd.print(plantInfo.get(idx));
+    }
   }
+  return;
 }
 
 

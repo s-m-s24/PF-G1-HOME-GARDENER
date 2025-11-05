@@ -150,13 +150,19 @@ void setup() {
   pinMode(LED_WATER, OUTPUT);
   pinMode(LED_ON, OUTPUT);
   pinMode(LED_LOADING, OUTPUT);
-
+*/
   lcd.init();
   lcd.backlight();
-  printPlantsNames();
+  //printPlantsNames();
+  lcd.setCursor(0,0);
+  lcd.print("*Temperatura:BAJA");
+  lcd.setCursor(1,1);
+  lcd.print("Humedad:NORMAL");
 }
 
 void loop() {
+  /*
+  
   ReadButtonDown = digitalRead(BUTTON_DOWN);
   ReadButtonUp = digitalRead(BUTTON_UP);
   ReadButtonOk = digitalRead(BUTTON_OK);
@@ -192,7 +198,7 @@ void loop() {
         }
         printIndex = ScrollUp(plants.getSize(), printIndex);
         //Serial.println("up");
-        readsMade = 0;*/
+        readsMade = 0;
         actualState = UP;
       }
 
@@ -267,6 +273,8 @@ void loop() {
       }
       break;
   }
+  
+  */
 }
 //CONVERTIR EN DOWNNN
 int ScrollDown(int maxSize, int index) {

@@ -1,8 +1,8 @@
-#define PIN_HUMEDAD 5
+#define PIN_HUMEDAD 36
 
 void setup() {
 	Serial.begin(9600);
-	pinMode(PIN_HUMEDAD, INPUT);
+	//pinMode(PIN_HUMEDAD, INPUT);
 }
 
 void loop() {

@@ -6,14 +6,19 @@
 const char* ssid = "MECA-IoT";
 const char* password = "IoT$2025";
 
-struct Reads {
+struct Messages {
+  bool received;
   float tempRead;
   float humRead;
   String lastRead;
+  bool watered;
   String lastWater;
-  String timestamp;
+  int IDPlant;
 };
 
+Messages sendInfo = { false, 0, 0, "0", false, "0", 0 };
+
+String order = "";
 
 int tempProblems = 0;
 int humProblems = 0;
@@ -45,14 +50,12 @@ const char* ntpServer = "pool.ntp.org";
 const long gmtOffset_sec = -10800;  // GMT-3 Argentina
 const int daylightOffset_sec = 0;
 
-Reads sendReads = { 0, 0, "0", "0", "0" };
-
 void setup() {
   Serial.begin(9600);
   dht.begin();
   pinMode(PIN_HUMEDAD, INPUT);
   pinMode(LED, OUTPUT);
-  /*
+  
   WiFi.begin(ssid, password);
 
   Serial.println("Connecting Wifi");
@@ -70,7 +73,7 @@ void setup() {
     delay(500);
   }
   Serial.println("Hora sincronizada!");  // Esperar hasta que se sincronice el tiempo
-  */
+  
 }
 void loop() {
   if (Serial.available() > 0) {
@@ -139,11 +142,11 @@ void ReadValues(void) {
     }
   }
   Serial.println("");
-  sendReads.tempRead = promTemp / CANT_READS;
-  sendReads.humRead = promHumid / CANT_READS;
-  //sendReads.timestamp = timestamp;
-  Serial.println(sendReads.humRead);
-  Serial.println(sendReads.tempRead);
+  sendInfo.tempRead = promTemp / CANT_READS;
+  sendInfo.humRead = promHumid / CANT_READS;
+  sendInfo.lastRead = timestamp;
+  Serial.println(sendInfo.humRead);
+  Serial.println(sendInfo.tempRead);
   //Serial.println(sendReads.timestamp);
   return;
 }

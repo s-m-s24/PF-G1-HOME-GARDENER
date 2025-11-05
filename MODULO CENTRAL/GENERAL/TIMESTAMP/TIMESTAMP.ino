@@ -2,8 +2,8 @@
 #include "time.h"
 
 // REPLACE WITH YOUR NETWORK CREDENTIALS
-const char* ssid = "Sofi";
-const char* password = "IngEloM2025";
+const char* ssid = "MECA-Iot";
+const char* password = "IoT$2025";
 
 const char *ntpServer = "pool.ntp.org";
 const long gmtOffset_sec = -10800;  // GMT-3 Argentina

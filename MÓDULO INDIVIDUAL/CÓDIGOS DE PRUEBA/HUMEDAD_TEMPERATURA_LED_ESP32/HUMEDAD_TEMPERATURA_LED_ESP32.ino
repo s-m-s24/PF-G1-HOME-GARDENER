@@ -18,10 +18,10 @@ struct IdealValues {
   int humIdeal;
 };
 
-#define DHTPIN 4  // Pin donde está conectado el sensor
+#define DHTPIN 32  // Pin donde está conectado el sensor
 #define DHTTYPE DHT22
 
-#define LED 17
+#define LED 22
 #define PIN_HUMEDAD 36
 void ReadTemperature(void);
 String tempStatus = "";
@@ -37,27 +37,34 @@ void setup() {
 
   WiFi.begin(ssid, password);
 
-  Serial.println("Connecting Wifi");
-  while (WiFi.status() != WL_CONNECTED) {
-    Serial.print(".");
-    delay(500);
-  }
-  Serial.println("\nWiFi connected");
+  //Serial.println("Connecting Wifi");
+  //while (WiFi.status() != WL_CONNECTED) {
+  //Serial.print(".");
+  //delay(500);
+  //}
+  //Serial.println("\nWiFi connected");
 
-  configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
+  //configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
 
   // Esperar hasta que se sincronice el tiempo
-  struct tm timeinfo;
-  while (!getLocalTime(&timeinfo)) {
-    Serial.println("Esperando sincronización NTP...");
-    delay(500);
-  }
-  Serial.println("Hora sincronizada!");
+  //struct tm timeinfo;
+  //while (!getLocalTime(&timeinfo)) {
+  //Serial.println("Esperando sincronización NTP...");
+  //delay(500);
+  //}
+  //Serial.println("Hora sincronizada!");
 }
 void loop() {
-  delay(1000);
-  
+  digitalWrite(LED,HIGH);
+  delay(1500);
   int lecturaHumedad = analogRead(PIN_HUMEDAD);
-  float temperatura = dht.readTemperature();
-  Serial.print(temperatura);
+  float t = dht.readTemperature();
+  Serial.print("Hum: ");
+  Serial.print(lecturaHumedad);
+  Serial.print(" | ");
+  Serial.print("Temperatura: ");
+  Serial.print(t);
+  Serial.println(" *C");
+  digitalWrite(LED,LOW);
+  delay(1500);
 }

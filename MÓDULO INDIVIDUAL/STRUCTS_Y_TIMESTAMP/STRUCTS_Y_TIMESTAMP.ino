@@ -1,6 +1,7 @@
 #include <DHT.h>
 #include <WiFi.h>
 #include "time.h"
+#include <esp_now.h>
 
 // REPLACE WITH YOUR NETWORK CREDENTIALS
 const char* ssid = "MECA-IoT";
@@ -40,6 +41,13 @@ String orderRead = "read";
 #define MIN_HUM 500
 #define MAX_HUM 3800
 
+
+/////////// SLEEP ///////////
+#define uS_TO_S_FACTOR 1000000  //Conversion factor for micro seconds to seconds
+#define TIME_TO_SLEEP 10        //En segundos
+/////////////////////////////
+
+
 String tempStatus = "";
 String humStatus = "";
 
@@ -50,12 +58,87 @@ const char* ntpServer = "pool.ntp.org";
 const long gmtOffset_sec = -10800;  // GMT-3 Argentina
 const int daylightOffset_sec = 0;
 
+Reads sendReads = { 0, 0, "0", "0", "0" };
+
+/////////// BLE ///////////
+
+uint8_t esp3Adress[] = { 0xD4, 0x8A, 0xFC, 0xCF, 0x1F, 0x94 };  // central module adress --> d4:8a:fc:cf:1f:94
+
+typedef struct central_actions_message {
+  bool water_plants;
+  bool send_data;  // send sensors data
+  bool sleep;      // a dormir
+} central_actions_message;
+
+// STRUCT QUE VA A DEVOLVER
+typedef struct individual_data_message {
+  float tempRead;
+  float humRead;
+  String lastRead;
+  String lastWater;
+  String timestamp;
+} individual_data_message;
+
+// create a struct called myData to save the recieved actions from the central module
+central_actions_message myData;
+// create a sendData struct
+individual_data_message sendData;
+
+esp_now_peer_info_t peerInfo;
+
+// callback when data is sent
+void OnDataSent(const uint8_t* mac_addr, esp_now_send_status_t status) {
+  Serial.print("\r\nLast Packet Send Status:\t");
+  Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
+}
+
+// callback function that will be executed when data is received
+void OnDataRecv(const uint8_t* mac, const uint8_t* incomingData, int len) {
+  memcpy(&myData, incomingData, sizeof(myData));
+  Serial.print("Bytes received: ");
+  Serial.println(len);
+  Serial.print("WATER PLANTS: ");
+  Serial.println(myData.water_plants);
+  Serial.print("SEND SENSOR DATA: ");
+  Serial.println(myData.send_data);
+  Serial.print("SLEEP: ");
+  Serial.println(myData.sleep);
+  Serial.println();
+}
+///////////////////////////
+
+
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(115200);
   dht.begin();
   pinMode(PIN_HUMEDAD, INPUT);
   pinMode(LED, OUTPUT);
-  
+  WiFi.mode(WIFI_STA);
+
+  ////////////////////////////////////// BLE //////////////////////////////////////
+
+  if (esp_now_init() != ESP_OK) {
+    Serial.println("Error initializing ESP-NOW");
+    return;
+  }
+  // Once ESPNow is successfully Init, we will register for Send CB to get the status of Trasnmitted packet
+  esp_now_register_send_cb(OnDataSent);
+
+  // Register peer
+  memcpy(peerInfo.peer_addr, esp3Adress, 6);
+  if (esp_now_add_peer(&peerInfo) != ESP_OK) {
+    Serial.println("Failed to add peer");
+  }
+
+  // Once ESPNow is successfully Init, we will register for recv CB to
+  // get recv packer info
+  esp_now_register_recv_cb(esp_now_recv_cb_t(OnDataRecv));
+  ///////////////////////////////////////////////////////////////////////////////
+
+
+
+
+  /*
   WiFi.begin(ssid, password);
 
   Serial.println("Connecting Wifi");
@@ -72,7 +155,7 @@ void setup() {
     Serial.println("Esperando sincronización NTP...");
     delay(500);
   }
-  Serial.println("Hora sincronizada!");  // Esperar hasta que se sincronice el tiempo
+  Serial.println("Hora sincronizada!");  // Esperar hasta que se sincronice el tiempo */
   
 }
 void loop() {
@@ -91,6 +174,21 @@ void loop() {
   if (tempProblems >= MAX_PROBLEMS) {
     Serial.println(tempDetected);
     tempProblems = 0;
+  }
+
+  if(myData.water_plants == false){
+    Serial.println("regar");
+    myData.water_plants = true;
+  }
+  if (myData.send_data == false) { // si pidió la data
+    Serial.println("Datos requeridos. Enviando a ESP3 (CENTRAL)...");
+    esp_err_t result = esp_now_send(esp3Adress, (uint8_t*)&sendData, sizeof(sendData));
+    if (result == ESP_OK) {
+      Serial.println("Sent to ESP3 (CENTRAL) with success");
+    } else {
+      Serial.println("Error sending to ESP3 (CENTRAL)");
+    }
+    myData.send_data = true;
   }
 }
 
@@ -138,18 +236,27 @@ void ReadValues(void) {
       i = i - 1;
     } else {
       promHumid = promHumid + humid;
-
     }
   }
   Serial.println("");
-  sendInfo.tempRead = promTemp / CANT_READS;
-  sendInfo.humRead = promHumid / CANT_READS;
-  sendInfo.lastRead = timestamp;
-  Serial.println(sendInfo.humRead);
-  Serial.println(sendInfo.tempRead);
-  //Serial.println(sendReads.timestamp);
-  return;
+  sendReads.tempRead = promTemp / CANT_READS;
+  sendReads.humRead = promHumid / CANT_READS;
+
+  sendData.tempRead = sendReads.tempRead;
+  sendData.humRead = sendReads.humRead;
+  sendData.timestamp = timestamp;
+
+  
+
+
+return;
 }
+
+//sendReads.timestamp = timestamp;
+//Serial.println(sendReads.timestamp);
+
+
+
 
 
 unsigned long getTime() {

@@ -15,9 +15,9 @@ uint8_t esp3Adress[] = { 0xD4, 0x8A, 0xFC, 0xCF, 0x1F, 0x94 };  // central modul
 
 // Structure to receive data -- must match the sender structure
 typedef struct central_actions_message {
-  bool water_plants;
-  bool send_data;  // send sensors data
-  bool sleep;      // a dormir
+  int water_plants;
+  int send_data;  // send sensors data
+  int sleep;      // a dormir
 } central_actions_message;
 
 // STRUCT QUE VA A DEVOLVER

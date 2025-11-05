@@ -25,9 +25,9 @@ uint8_t esp1Adress[] = { 0xB8, 0xD6, 0x1A, 0xA7, 0x6F, 0xB8 };  // direccion mac
 // !!!!! Structure example to send data - Must match the receiver structure !!!!!
 // LO QUE VA A MANDAR
 typedef struct central_actions_message {
-  bool water_plants;
-  bool send_data;
-  bool sleep;
+  int water_plants;
+  int send_data;
+  int sleep;
 } central_actions_message;
 
 // LO QUE VA A RECIBIR -- not important 4now
@@ -127,9 +127,9 @@ void loop() {
 int lec_botesp2 = digitalRead(BOT_ESP2);
 int lec_botesp1 = digitalRead(BOT_ESP1);
 
-centralDataESP.water_plants = true;
-centralDataESP.send_data = true;
-centralDataESP.sleep = false;
+centralDataESP.water_plants = 1;
+centralDataESP.send_data = 1;
+centralDataESP.sleep = 0;
 centralDataESP = centralDataESP1;
 
 

@@ -3,9 +3,16 @@
 #include "time.h"
 #include <esp_now.h>
 
+#define uS_TO_S_FACTOR 1000000  //Conversion factor for micro seconds to seconds
+#define TIME_TO_SLEEP 10        //En segundos
+
+unsigned long now = 0;
+unsigned long lastAction = 0;
+#define WAIT_TIME 1200000
+
 // REPLACE WITH YOUR NETWORK CREDENTIALS
 const char* ssid = "MECA-IoT";
-const char* password = "IoT$2025";
+const char* password = "IoT$2026";
 
 struct Messages {
   bool received;
@@ -17,7 +24,15 @@ struct Messages {
   int IDPlant;
 };
 
+struct Reads {
+  float tempRead;
+  float humRead;
+  String lastRead;
+  bool watered;
+};
+
 Messages sendInfo = { false, 0, 0, "0", false, "0", 0 };
+Reads sendReads = { 0, 0, "0", false };
 
 String order = "";
 
@@ -27,7 +42,10 @@ int humProblems = 0;
 char humidDetected[70];
 char tempDetected[70];
 String instruction = "";
-String orderRead = "read";
+#define READ "read"
+#define WATER "water"
+#define READ_WATER "read_&_water"
+#define RESEND "resend"
 
 #define DHTPIN 4  // Pin donde está conectado el sensor
 #define DHTTYPE DHT22
@@ -47,149 +65,95 @@ String orderRead = "read";
 #define TIME_TO_SLEEP 10        //En segundos
 /////////////////////////////
 
-
 String tempStatus = "";
 String humStatus = "";
 
 DHT dht(DHTPIN, DHTTYPE);
 void ReadValues(void);
+void States(void);
+void Water(void);
 
 const char* ntpServer = "pool.ntp.org";
 const long gmtOffset_sec = -10800;  // GMT-3 Argentina
 const int daylightOffset_sec = 0;
 
-Reads sendReads = { 0, 0, "0", "0", "0" };
+#define SLEEP 0
+#define ESPERA 1
+#define LEER 2
+#define REGAR 3
+#define ENVIAR_INFO 4
+int actualState = ESPERA;
 
-/////////// BLE ///////////
+  delay(1000);
+  Serial.println("desperté");
 
-uint8_t esp3Adress[] = { 0xD4, 0x8A, 0xFC, 0xCF, 0x1F, 0x94 };  // central module adress --> d4:8a:fc:cf:1f:94
-
-typedef struct central_actions_message {
-  bool water_plants;
-  bool send_data;  // send sensors data
-  bool sleep;      // a dormir
-} central_actions_message;
-
-// STRUCT QUE VA A DEVOLVER
-typedef struct individual_data_message {
-  float tempRead;
-  float humRead;
-  String lastRead;
-  String lastWater;
-  String timestamp;
-} individual_data_message;
-
-// create a struct called myData to save the recieved actions from the central module
-central_actions_message myData;
-// create a sendData struct
-individual_data_message sendData;
-
-esp_now_peer_info_t peerInfo;
-
-// callback when data is sent
-void OnDataSent(const uint8_t* mac_addr, esp_now_send_status_t status) {
-  Serial.print("\r\nLast Packet Send Status:\t");
-  Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
+  esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
+  Serial.println("El  ESP32 despierta cada: " + String(TIME_TO_SLEEP) + " Seconds");
+  lastAction = millis();
 }
 
-// callback function that will be executed when data is received
-void OnDataRecv(const uint8_t* mac, const uint8_t* incomingData, int len) {
-  memcpy(&myData, incomingData, sizeof(myData));
-  Serial.print("Bytes received: ");
-  Serial.println(len);
-  Serial.print("WATER PLANTS: ");
-  Serial.println(myData.water_plants);
-  Serial.print("SEND SENSOR DATA: ");
-  Serial.println(myData.send_data);
-  Serial.print("SLEEP: ");
-  Serial.println(myData.sleep);
-  Serial.println();
-}
-///////////////////////////
-
-
-void setup() {
-  Serial.begin(115200);
-  dht.begin();
-  pinMode(PIN_HUMEDAD, INPUT);
-  pinMode(LED, OUTPUT);
-  WiFi.mode(WIFI_STA);
-
-  ////////////////////////////////////// BLE //////////////////////////////////////
-
-  if (esp_now_init() != ESP_OK) {
-    Serial.println("Error initializing ESP-NOW");
-    return;
-  }
-  // Once ESPNow is successfully Init, we will register for Send CB to get the status of Trasnmitted packet
-  esp_now_register_send_cb(OnDataSent);
-
-  // Register peer
-  memcpy(peerInfo.peer_addr, esp3Adress, 6);
-  if (esp_now_add_peer(&peerInfo) != ESP_OK) {
-    Serial.println("Failed to add peer");
-  }
-
-  // Once ESPNow is successfully Init, we will register for recv CB to
-  // get recv packer info
-  esp_now_register_recv_cb(esp_now_recv_cb_t(OnDataRecv));
-  ///////////////////////////////////////////////////////////////////////////////
-
-
-
-
-  /*
-  WiFi.begin(ssid, password);
-
-  Serial.println("Connecting Wifi");
-  while (WiFi.status() != WL_CONNECTED) {
-    Serial.print(".");
-    delay(500);
-  }
-  Serial.println("\nWiFi connected");
-
-  configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
-
-  struct tm timeinfo;
-  while (!getLocalTime(&timeinfo)) {
-    Serial.println("Esperando sincronización NTP...");
-    delay(500);
-  }
-  Serial.println("Hora sincronizada!");  // Esperar hasta que se sincronice el tiempo */
-  
-}
 void loop() {
-  if (Serial.available() > 0) {
-    instruction = Serial.readStringUntil('\n');
-    instruction.trim();
-    if (instruction.equals(orderRead)) {
-      Serial.println("to read");
-      ReadValues();
-    }
-  }
-  if (humProblems >= MAX_PROBLEMS) {
-    Serial.println(humidDetected);
-    humProblems = 0;
-  }
-  if (tempProblems >= MAX_PROBLEMS) {
-    Serial.println(tempDetected);
-    tempProblems = 0;
-  }
+  now = millis();
+  States();
+}
 
-  if(myData.water_plants == false){
-    Serial.println("regar");
-    myData.water_plants = true;
+void States(void) {
+  switch (actualState) {
+    case ESPERA:
+      if (instruction == READ || instruction == READ_WATER) {
+        ReadValues();
+        actualState = LEER;
+      }
+      if (instruction == WATER) {
+        Water();
+        actualState = REGAR;
+      }
+      if ((now - lastAction) >= WAIT_TIME) {
+        //Go to sleep now
+        esp_deep_sleep_start();
+      }
+      break;
+
+    case LEER:
+      if (humProblems >= MAX_PROBLEMS) {
+        Serial.println(humidDetected);
+        humProblems = 0;
+        lastAction = millis();
+        actualState = ESPERA;
+      }
+      if (tempProblems >= MAX_PROBLEMS) {
+        Serial.println(tempDetected);
+        tempProblems = 0;
+        lastAction = millis();
+        actualState = ESPERA;
+      }
+      if ((humProblems >= MAX_PROBLEMS) && (tempProblems >= MAX_PROBLEMS)) {
+        //ENVIAR DATOS
+        actualState = ENVIAR_INFO;
+      }
+      break;
+
+    case REGAR:
+      if (instruction == READ_WATER) {
+        ReadValues();
+        actualState = LEER;
+      }
+      if (instruction == WATER) {
+        //ENVIAR DATOS
+        actualState = ENVIAR_INFO;
+      }
+      break;
+
+    case ENVIAR_INFO:
+      //ENVIAR INFO Y
+      lastAction = millis();
+      actualState = ESPERA;
+      break;
   }
-  if (myData.send_data == false) { // si pidió la data
-    Serial.println("Datos requeridos. Enviando a ESP3 (CENTRAL)...");
-    esp_err_t result = esp_now_send(esp3Adress, (uint8_t*)&sendData, sizeof(sendData));
-    if (result == ESP_OK) {
-      Serial.println("Sent to ESP3 (CENTRAL) with success");
-    } else {
-      Serial.println("Error sending to ESP3 (CENTRAL)");
-    }
-    myData.send_data = true;
-  }
+}
+
+void Water(void) {
+  //PRENDER BOMBA POR 3 SEG
 }
 
 void ReadValues(void) {
@@ -242,22 +206,15 @@ void ReadValues(void) {
   sendReads.tempRead = promTemp / CANT_READS;
   sendReads.humRead = promHumid / CANT_READS;
 
-  sendData.tempRead = sendReads.tempRead;
-  sendData.humRead = sendReads.humRead;
-  sendData.timestamp = timestamp;
+  sendInfo.tempRead = sendReads.tempRead;
+  sendInfo.humRead = sendReads.humRead;
+  sendInfo.lastRead = timestamp;
 
-  
+  //sendInfo.timestamp = timestamp;
+  //Serial.println(sendInfo.timestamp);
 
-
-return;
+  return;
 }
-
-//sendReads.timestamp = timestamp;
-//Serial.println(sendReads.timestamp);
-
-
-
-
 
 unsigned long getTime() {
   time_t now;

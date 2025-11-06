@@ -84,12 +84,42 @@ const int daylightOffset_sec = 0;
 #define ENVIAR_INFO 4
 int actualState = ESPERA;
 
-  delay(1000);
-  Serial.println("desperté");
+delay(1000);
+Serial.println("desperté");
 
-  esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
-  Serial.println("El  ESP32 despierta cada: " + String(TIME_TO_SLEEP) + " Seconds");
-  lastAction = millis();
+esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP* uS_TO_S_FACTOR);
+Serial.println("El  ESP32 despierta cada: " + String(TIME_TO_SLEEP) + " Seconds");
+lastAction = millis();
+
+uint8_t esp3Adress[] = { 0xC0, 0x49, 0xEF, 0x69, 0xCB, 0x48 };  // central module adress --> d4:8a:fc:cf:1f:94
+//
+
+typedef struct central_actions_message {
+  int water_plants;
+  int send_data;  // send sensors data
+  int sleep;      // a dormir
+} central_actions_message;
+
+// STRUCT QUE VA A DEVOLVER
+typedef struct individual_data_message {
+  float tempRead;
+  float humRead;
+  String lastRead;
+  String lastWater;
+  String timestamp;
+} individual_data_message;
+
+// create a struct called myData to save the recieved actions from the central module
+central_actions_message myData;
+// create a sendData struct
+individual_data_message sendData;
+
+esp_now_peer_info_t peerInfo;
+
+// callback when data is sent
+void OnDataSent(const uint8_t* mac_addr, esp_now_send_status_t status) {
+  Serial.print("\r\nLast Packet Send Status:\t");
+  Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
 }
 
 void loop() {

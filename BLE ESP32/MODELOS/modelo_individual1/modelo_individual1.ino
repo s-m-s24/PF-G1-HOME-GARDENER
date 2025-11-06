@@ -11,7 +11,10 @@ int estadoActual = ESTADO_ESPERA;
 
 bool flagBoton = false;
 
-uint8_t esp3Adress[] = { 0xD4, 0x8A, 0xFC, 0xCF, 0x1F, 0x94 };  // central module adress --> d4:8a:fc:cf:1f:94
+uint8_t esp3Adress[] = { 0xC0, 0x49, 0xEF, 0x69, 0xCB, 0x48 };  // central module adress (3) --> d4:8a:fc:cf:1f:94
+// adress esp2 (reemplazo de esp3 x ahora porque no se donde quedó) --> c0:49:ef:69:cb:48
+
+
 
 // Structure to receive data -- must match the sender structure
 typedef struct central_actions_message {

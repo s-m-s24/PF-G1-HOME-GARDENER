@@ -57,12 +57,13 @@ Reads sendReads = { 0, 0, "0", "0", "0" };
 
 /////////// BLE ///////////
 
-uint8_t esp3Adress[] = { 0xD4, 0x8A, 0xFC, 0xCF, 0x1F, 0x94 };  // central module adress --> d4:8a:fc:cf:1f:94
+uint8_t esp3Adress[] = { 0xC0, 0x49, 0xEF, 0x69, 0xCB, 0x48 };  // central module adress --> d4:8a:fc:cf:1f:94
+// 
 
 typedef struct central_actions_message {
-  bool water_plants;
-  bool send_data;  // send sensors data
-  bool sleep;      // a dormir
+  int water_plants;
+  int send_data;  // send sensors data
+  int sleep;      // a dormir
 } central_actions_message;
 
 // STRUCT QUE VA A DEVOLVER
@@ -171,11 +172,11 @@ void loop() {
     tempProblems = 0;
   }
 
-  if(myData.water_plants == false){
+  if(myData.water_plants == 1){
     Serial.println("regar");
-    myData.water_plants = true;
+    myData.water_plants = 0;
   }
-  if (myData.send_data == false) { // si pidió la data
+  if (myData.send_data == 1) { // si pidió la data
     Serial.println("Datos requeridos. Enviando a ESP3 (CENTRAL)...");
     esp_err_t result = esp_now_send(esp3Adress, (uint8_t*)&sendData, sizeof(sendData));
     if (result == ESP_OK) {
@@ -183,7 +184,7 @@ void loop() {
     } else {
       Serial.println("Error sending to ESP3 (CENTRAL)");
     }
-    myData.send_data = true;
+    myData.send_data = 0;
   }
 }
 
